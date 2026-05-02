@@ -27,11 +27,12 @@ const DEFAULT_NODE_COLS = [
 ];
 
 const DEFAULT_PID_COLS = [
-  { id: 'drawingId',    label: 'DRAWING ID',      width: 180 },
-  { id: 'revision',     label: 'REVISION',         width: 80  },
-  { id: 'docType',      label: 'DOCUMENT TYPE',    width: 150 },
-  { id: 'description',  label: 'DESCRIPTION',      width: 300 },
-  { id: 'attachment',   label: 'ATTACHMENT',       width: 200, type: 'file' },
+  { id: 'drawingId',    label: 'DRAWING ID',      width: 160 },
+  { id: 'revision',     label: 'REV.',             width:  60 },
+  { id: 'docType',      label: 'DOCUMENT TYPE',    width: 160 },
+  { id: 'description',  label: 'DESCRIPTION',      width: 320 },
+  { id: 'link',         label: 'HYPERLINK / URL',  width: 220 },
+  { id: 'attachment',   label: 'ATTACHMENT',       width: 250, type: 'file' },
 ];
 
 const DEFAULT_DEVIATION_COLS = [
@@ -51,23 +52,23 @@ const DEFAULT_CAUSE_COLS = [
 ];
 
 const DEFAULT_REC_COLS = [
-  { id: 'description',    label: 'PHA RECOMMENDATION',   width: 450 },
-  { id: 'priority',       label: 'PRIORITY',             width: 120, type: 'select', opts: ['High','Medium','Low'] },
-  { id: 'responsibility', label: 'RESPONSIBLE PARTY',    width: 220 },
-  { id: 'status',         label: 'STATUS',               width: 180, type: 'select', opts: ['Proposed','Pending','Under Review','In Progress','Completed','Implemented','Closed','Removed','Not Applicable'] },
-  { id: 'dueDate',        label: 'DUE DATE',             width: 140, type: 'date'   },
-  { id: 'comments',       label: 'TECHNICAL COMMENTS',   width: 300 },
-  { id: 'reference',      label: 'Reference',            width: 100, group: 'Referenced Locations', isAuto: true },
-  { id: 'cat',            label: 'CAT',                  width:  60, group: 'Referenced Locations' },
-  { id: 's_before',       label: 'S Before',             width: 100, group: 'Referenced Locations', isRisk: true },
-  { id: 'l_before',       label: 'L Before',             width: 100, group: 'Referenced Locations', isRisk: true },
-  { id: 'rr_before',      label: 'RR Before',            width: 100, group: 'Referenced Locations', isCalculated: true },
-  { id: 's_curr',         label: 'S',                    width:  50, group: 'Referenced Locations', isRisk: true },
-  { id: 'l_curr',         label: 'L',                    width:  50, group: 'Referenced Locations', isRisk: true },
-  { id: 'rr_curr',        label: 'RR',                   width:  60, group: 'Referenced Locations', isCalculated: true },
-  { id: 's_after',        label: 'S After Rec.',         width: 100, group: 'Referenced Locations', isRisk: true },
-  { id: 'l_after',        label: 'L After Rec.',         width: 100, group: 'Referenced Locations', isRisk: true },
-  { id: 'rr_after',       label: 'RR After Rec.',        width: 100, group: 'Referenced Locations', isCalculated: true },
+  { id: 'description',    label: 'PHA RECOMMENDATION',   width: 360 },
+  { id: 'priority',       label: 'PRIORITY',             width:  90, type: 'select', opts: ['High','Medium','Low'] },
+  { id: 'responsibility', label: 'RESPONSIBLE PARTY',    width: 160 },
+  { id: 'status',         label: 'STATUS',               width: 160, type: 'select', opts: ['Proposed','Pending','Under Review','In Progress','Completed','Implemented','Closed','Removed','Not Applicable'] },
+  { id: 'dueDate',        label: 'DUE DATE',             width: 120, type: 'date'   },
+  { id: 'comments',       label: 'COMMENTS',             width: 220 },
+  { id: 'reference',      label: 'REF.',                 width:  70, group: 'Risk Reference', isAuto: true },
+  { id: 'cat',            label: 'CAT',                  width:  55, group: 'Risk Reference' },
+  { id: 's_before',       label: 'S',                    width:  45, group: 'Inherent Risk', isRisk: true },
+  { id: 'l_before',       label: 'L',                    width:  45, group: 'Inherent Risk', isRisk: true },
+  { id: 'rr_before',      label: 'RR',                   width:  55, group: 'Inherent Risk', isCalculated: true },
+  { id: 's_curr',         label: 'S',                    width:  45, group: 'Mitigated Risk', isRisk: true },
+  { id: 'l_curr',         label: 'L',                    width:  45, group: 'Mitigated Risk', isRisk: true },
+  { id: 'rr_curr',        label: 'RR',                   width:  55, group: 'Mitigated Risk', isCalculated: true },
+  { id: 's_after',        label: 'S',                    width:  45, group: 'Residual Risk', isRisk: true },
+  { id: 'l_after',        label: 'L',                    width:  45, group: 'Residual Risk', isRisk: true },
+  { id: 'rr_after',       label: 'RR',                   width:  55, group: 'Residual Risk', isCalculated: true },
 ];
 
 const PHA_COLUMN_DEFS = [
@@ -111,19 +112,71 @@ const SIDE_NAV = {
   recs:       [{ id: 'list',      label: 'Action Items',         Icon: ClipboardCheck }],
   checklists: [{ id: 'list',      label: 'Checklist Registry',   Icon: ListChecks  }],
   pha:        [{ id: 'sheet',     label: 'Analysis Sheet',       Icon: ClipboardList }, { id: 'summary', label: 'Risk Summary', Icon: Activity }],
-  risk:       [{ id: 'likelihoods', label: 'Likelihood Categories', Icon: Activity }, { id: 'consequences', label: 'Consequence Categories', Icon: AlertTriangle }],
+  risk:       [{ id: 'matrix', label: 'Risk Matrix', Icon: Grid3X3 }, { id: 'likelihoods', label: 'Likelihood Categories', Icon: Activity }, { id: 'consequences', label: 'Consequence Categories', Icon: AlertTriangle }, { id: 'rankings', label: 'Risk Rankings', Icon: Zap }],
 };
 
 // ─────────────────────────────────────────────
 // UTILITY HELPERS
 // ─────────────────────────────────────────────
 
+const RISK_CHANNELS = ['Safety', 'Environment', 'Assets', 'Community', 'Reputation'];
+
+// Default 5×5 matrix values per channel (Consequence rows: VH→VL, Likelihood cols: VL→VH)
+// Based on Gharda reference: values 1-5 by risk level
+const DEFAULT_MATRIX_VALUES = {
+  VH: { VL: 3, L: 3, M: 4, H: 4, VH: 5 },
+  H:  { VL: 2, L: 3, M: 3, H: 4, VH: 4 },
+  M:  { VL: 2, L: 2, M: 3, H: 3, VH: 4 },
+  L:  { VL: 1, L: 2, M: 2, H: 3, VH: 3 },
+  VL: { VL: 1, L: 1, M: 2, H: 2, VH: 3 },
+};
+
+const buildDefaultRiskMatrix = () => {
+  const matrix = {};
+  RISK_CHANNELS.forEach(ch => {
+    matrix[ch] = {};
+    ['VH','H','M','L','VL'].forEach(cons => {
+      ['VL','L','M','H','VH'].forEach(lik => {
+        matrix[ch][`${lik}_${cons}`] = DEFAULT_MATRIX_VALUES[cons][lik];
+      });
+    });
+  });
+  return matrix;
+};
+
+const DEFAULT_RANKING_COLS = [
+  { id: 'code',        label: 'CODE',        width: 80  },
+  { id: 'description', label: 'DESCRIPTION', width: 250 },
+  { id: 'color',       label: 'COLOR',       width: 80,  type: 'color' },
+  { id: 'priority',    label: 'PRIORITY',    width: 100 },
+];
+
+const DEFAULT_RANKINGS = [
+  { id: 'r5', code: '5', description: 'Very High — Immediate action required',  color: '#7f1d1d', priority: '1' },
+  { id: 'r4', code: '4', description: 'High — Urgent action required',           color: '#dc2626', priority: '2' },
+  { id: 'r3', code: '3', description: 'Medium — Action plan required',           color: '#f97316', priority: '3' },
+  { id: 'r2', code: '2', description: 'Low — Monitor and review',               color: '#fbbf24', priority: '4' },
+  { id: 'r1', code: '1', description: 'Very Low — Acceptable risk',             color: '#16a34a', priority: '5' },
+];
+
 const RISK_STYLE = (val) => {
   if (!val || val === 0) return 'bg-slate-100 text-slate-400';
-  if (val >= 16) return 'bg-red-600 text-white';
-  if (val >= 10) return 'bg-orange-500 text-white';
-  if (val >= 5)  return 'bg-yellow-400 text-amber-900';
-  return 'bg-emerald-500 text-white';
+  if (val >= 5) return 'bg-red-800 text-white';
+  if (val >= 4) return 'bg-red-600 text-white';
+  if (val >= 3) return 'bg-orange-500 text-white';
+  if (val >= 2) return 'bg-yellow-400 text-amber-900';
+  return 'bg-emerald-600 text-white';
+};
+
+const GET_RISK_COLOR = (score, rankings = []) => {
+  if (!score || score === 0) return { bg: '#f1f5f9', text: '#94a3b8' };
+  const match = rankings.find(r => parseInt(r.code) === parseInt(score));
+  if (match) return { bg: match.color || '#fff', text: '#fff' };
+  if (score >= 5)  return { bg: '#7f1d1d', text: '#fff' };
+  if (score >= 4)  return { bg: '#dc2626', text: '#fff' };
+  if (score >= 3)  return { bg: '#f97316', text: '#fff' };
+  if (score >= 2)  return { bg: '#fbbf24', text: '#92400e' };
+  return { bg: '#16a34a', text: '#fff' };
 };
 
 // ─────────────────────────────────────────────
@@ -381,7 +434,17 @@ const IndustrialRegistryView = ({
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    if (file && activeFileRow) { handleUpdate(activeFileRow, 'attachment', file.name); setActiveFileRow(null); }
+    if (!file || !activeFileRow) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      handleUpdate(activeFileRow, 'attachment', file.name);
+      handleUpdate(activeFileRow, 'attachmentData', ev.target.result);
+      handleUpdate(activeFileRow, 'attachmentType', file.type);
+    };
+    reader.readAsDataURL(file);
+    setActiveFileRow(null);
+    // reset input so same file can be re-selected
+    e.target.value = '';
   };
 
   const groupedHeaders = useMemo(() => {
@@ -471,12 +534,39 @@ const IndustrialRegistryView = ({
                           <input type="color" className="w-7 h-7 rounded border-none p-0 cursor-pointer shadow-sm" value={node[col.id] || '#004a7c'} onChange={e => handleUpdate(node.id, col.id, e.target.value)} />
                         </div>
                       ) : col.type === 'file' ? (
-                        <div className="flex items-center gap-2 px-2 h-10">
-                          <button onClick={() => { setActiveFileRow(node.id); fileInputRef.current.click(); }}
-                            className="p-1.5 bg-slate-50 border border-slate-200 rounded text-[#00B2B2] hover:bg-[#00B2B2] hover:text-white transition-all shadow-sm">
+                        <div className="flex items-center gap-1.5 px-2 h-10 min-w-0">
+                          {/* Upload button */}
+                          <button
+                            onClick={() => { setActiveFileRow(node.id); fileInputRef.current.click(); }}
+                            title="Upload / Replace File"
+                            className="shrink-0 p-1.5 bg-slate-50 border border-slate-200 rounded text-[#00B2B2] hover:bg-[#00B2B2] hover:text-white transition-all shadow-sm">
                             <FileUp size={12} />
                           </button>
-                          <span className="text-[9px] font-black text-slate-400 truncate max-w-[120px] uppercase">{node[col.id] || 'Select File'}</span>
+                          {/* Filename + open link */}
+                          {node[col.id] ? (
+                            <>
+                              {node.attachmentData ? (
+                                <a
+                                  href={node.attachmentData}
+                                  download={node[col.id]}
+                                  title={`Download: ${node[col.id]}`}
+                                  className="truncate text-[9px] font-black text-[#004a7c] underline underline-offset-2 hover:text-[#00B2B2] transition-colors max-w-[130px] cursor-pointer">
+                                  {node[col.id]}
+                                </a>
+                              ) : (
+                                <span className="truncate text-[9px] font-black text-slate-500 max-w-[130px]">{node[col.id]}</span>
+                              )}
+                              {/* Clear button */}
+                              <button
+                                onClick={() => { handleUpdate(node.id, col.id, ''); handleUpdate(node.id, 'attachmentData', ''); handleUpdate(node.id, 'attachmentType', ''); }}
+                                title="Remove attachment"
+                                className="shrink-0 p-0.5 text-slate-300 hover:text-red-500 transition-colors rounded">
+                                <X size={10} />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[9px] font-bold text-slate-300 italic">No file</span>
+                          )}
                         </div>
                       ) : col.type === 'select' ? (
                         <select className="w-full h-10 px-2 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)}>
@@ -485,6 +575,22 @@ const IndustrialRegistryView = ({
                         </select>
                       ) : col.type === 'date' ? (
                         <input type="date" className="w-full h-10 px-2 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)} />
+                      ) : col.id === 'link' ? (
+                        <div className="flex items-center h-10 px-1 gap-1 min-w-0">
+                          <input
+                            className="flex-1 h-10 px-2 text-xs outline-none bg-transparent focus:bg-white font-bold text-[#004a7c] min-w-0"
+                            value={String(node[col.id] || '')}
+                            placeholder="https://..."
+                            onChange={e => handleUpdate(node.id, col.id, e.target.value)}
+                          />
+                          {node[col.id] && (
+                            <a href={node[col.id]} target="_blank" rel="noopener noreferrer"
+                              title="Open link" onClick={e => e.stopPropagation()}
+                              className="shrink-0 p-1 text-[#00B2B2] hover:text-[#004a7c] transition-colors">
+                              <ChevronRight size={12} />
+                            </a>
+                          )}
+                        </div>
                       ) : (
                         <input readOnly={col.isAuto}
                           className={`w-full h-10 px-2 text-xs outline-none bg-transparent focus:bg-white font-bold ${col.textColor || 'text-slate-800'} ${col.isAuto ? 'italic cursor-default' : ''}`}
@@ -536,12 +642,15 @@ function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab,
 
   // Determine which column key to manage
   const colKey = (() => {
-    if (activeTopTab === 'pha') return null; // handled separately with checkboxes
+    if (activeTopTab === 'pha') return null;
     if (activeTopTab === 'nodes') return activeSideTab === 'pids' ? 'pidsColumns' : 'nodeColumns';
     if (activeTopTab === 'deviations') return 'deviationColumns';
     if (activeTopTab === 'causes') return 'causeColumns';
     if (activeTopTab === 'recs') return 'recColumns';
     if (activeTopTab === 'checklists') return 'checklistColumns';
+    if (activeTopTab === 'risk' && activeSideTab === 'likelihoods') return null;
+    if (activeTopTab === 'risk' && activeSideTab === 'consequences') return null;
+    if (activeTopTab === 'risk' && activeSideTab === 'rankings') return 'rankingColumns';
     return null;
   })();
 
@@ -626,6 +735,9 @@ const App = () => {
     deviationColumns: DEFAULT_DEVIATION_COLS,
     causeColumns: DEFAULT_CAUSE_COLS,
     recColumns: DEFAULT_REC_COLS,
+    rankingColumns: DEFAULT_RANKING_COLS,
+    rankings: DEFAULT_RANKINGS,
+    riskMatrix: buildDefaultRiskMatrix(),
     checklistColumns: [
       { id: 'category', label: 'CATEGORY', width: 180 },
       { id: 'question', label: 'QUESTION / ITEM', width: 450 },
@@ -633,6 +745,7 @@ const App = () => {
       { id: 'comments', label: 'COMMENTS', width: 300 },
     ],
   });
+  const [riskMatrixChannel, setRiskMatrixChannel] = useState('Safety');
   const [showNewModal, setShowNewModal] = useState(false);
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
@@ -689,6 +802,14 @@ const App = () => {
     updateServer({ nodes: studyData.nodes.map(n => n.id === activeNode.id ? { ...n, [field]: val } : n) });
   };
 
+  const handleMatrixCellUpdate = (likCode, conCode, val) => {
+    const key = `${likCode}_${conCode}`;
+    const currentMatrix = studyData.riskMatrix || buildDefaultRiskMatrix();
+    const channelMatrix = { ...(currentMatrix[riskMatrixChannel] || {}) };
+    channelMatrix[key] = parseInt(val) || 0;
+    updateServer({ riskMatrix: { ...currentMatrix, [riskMatrixChannel]: channelMatrix } });
+  };
+
   const addPhaRowAt = (index) => {
     const newRow = {
       id: Date.now().toString(), nodeId: selectedNodeId,
@@ -733,6 +854,9 @@ const App = () => {
       deviationColumns: DEFAULT_DEVIATION_COLS,
       causeColumns: DEFAULT_CAUSE_COLS,
       recColumns: DEFAULT_REC_COLS,
+      rankingColumns: DEFAULT_RANKING_COLS,
+      rankings: DEFAULT_RANKINGS,
+      riskMatrix: buildDefaultRiskMatrix(),
       checklistColumns: [
         { id: 'category', label: 'CATEGORY', width: 180 },
         { id: 'question', label: 'QUESTION / ITEM', width: 450 },
@@ -969,52 +1093,287 @@ const App = () => {
               <IndustrialRegistryView title="Checklist Registry" items={studyData.checklists || []} columns={studyData.checklistColumns || []} updateServer={updateServer} moduleKey="checklists" setShowColManager={setShowColManager} />
             )}
 
-            {/* ── RISK CRITERIA ── */}
-            {activeTopTab === 'risk' && activeSideTab === 'likelihoods' && (
-              <div className="max-w-3xl mx-auto p-8 space-y-6">
-                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Likelihood Categories</h3>
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#004a7c] text-white text-[10px] font-black uppercase">
-                      <tr><th className="p-4 border-r border-white/10">Code</th><th className="p-4 border-r border-white/10">Description</th><th className="p-4">Frequency (per year)</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {[{ code: 'VL', desc: 'Very Low',   freq: '< 1E-4' }, { code: 'L', desc: 'Low',       freq: '1E-4 to 1E-3' },
-                        { code: 'M',  desc: 'Medium',     freq: '1E-3 to 1E-2' }, { code: 'H', desc: 'High',      freq: '1E-2 to 1E-1' },
-                        { code: 'VH', desc: 'Very High',  freq: '> 1E-1' }].map(r => (
-                        <tr key={r.code} className="hover:bg-slate-50">
-                          <td className="p-4 font-black text-[#004a7c]">{r.code}</td>
-                          <td className="p-4 font-bold text-slate-700">{r.desc}</td>
-                          <td className="p-4 font-bold text-slate-500">{r.freq}</td>
-                        </tr>
+            {/* ── RISK CRITERIA: RISK MATRIX ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'matrix' && (() => {
+              const CONS_ROWS = ['VH','H','M','L','VL'];
+              const LIK_COLS  = ['VL','L','M','H','VH'];
+              const matrix = (studyData.riskMatrix || buildDefaultRiskMatrix())[riskMatrixChannel] || {};
+              const rankings = studyData.rankings || DEFAULT_RANKINGS;
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  {/* Section header */}
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />
+                      Risk Matrix
+                    </h2>
+                    <select
+                      className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
+                      value={riskMatrixChannel}
+                      onChange={e => setRiskMatrixChannel(e.target.value)}>
+                      {RISK_CHANNELS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
+                    </select>
+                  </div>
+                  {/* Toolbar */}
+                  <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
+                    <div className="flex items-center gap-1">
+                      <ToolbarButton icon={<Copy size={18}/>} title="Copy" />
+                      <ToolbarButton icon={<Scissors size={18}/>} title="Cut" />
+                      <ToolbarButton icon={<Clipboard size={18}/>} title="Paste" />
+                      <div className="h-6 w-px bg-slate-300 mx-2"/>
+                      <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                    </div>
+                    <div className="ml-4 flex items-center gap-3">
+                      {RISK_CHANNELS.map(ch => (
+                        <button key={ch} onClick={() => setRiskMatrixChannel(ch)}
+                          className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${riskMatrixChannel === ch ? 'bg-[#004a7c] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004a7c] hover:text-[#004a7c]'}`}>
+                          {ch}
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-auto p-8 bg-slate-100/40">
+                    <div className="bg-white border border-slate-300 shadow-md rounded-sm overflow-hidden w-fit">
+                      <table className="border-collapse text-[11px]">
+                        <thead>
+                          {/* Group header */}
+                          <tr className="bg-[#004a7c] text-white">
+                            <th className="border border-slate-300 p-3 w-28 text-center font-black text-[9px] uppercase tracking-widest" rowSpan={2}>
+                              <div className="-rotate-90 whitespace-nowrap text-teal-300">Consequence</div>
+                            </th>
+                            <th colSpan={5} className="border border-slate-300 p-2 text-center font-black text-[9px] text-teal-300 uppercase tracking-[0.3em]">
+                              Likelihood →
+                            </th>
+                            {/* legend col */}
+                            <th className="border border-slate-300 p-2 bg-slate-700 text-[8px] font-black uppercase tracking-widest text-slate-200 w-40 text-center">
+                              Risk Ranking
+                            </th>
+                          </tr>
+                          <tr className="bg-[#004a7c] text-white">
+                            {LIK_COLS.map(l => (
+                              <th key={l} className="border border-slate-300 p-3 w-24 text-center font-black text-xs">
+                                {l}
+                              </th>
+                            ))}
+                            {/* ranking legend header spacer */}
+                            <td className="border border-slate-300 bg-slate-100 p-2 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                              Code / Color / Label
+                            </td>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {CONS_ROWS.map((cons, rowIdx) => {
+                            const ranking = rankings[rowIdx] || {};
+                            const rColor = GET_RISK_COLOR(parseInt(ranking.code) || 0, rankings);
+                            return (
+                              <tr key={cons} className="h-20">
+                                <td className="border border-slate-300 bg-[#004a7c] text-white text-center font-black text-xs p-2 w-28">
+                                  {cons}
+                                </td>
+                                {LIK_COLS.map(lik => {
+                                  const val = matrix[`${lik}_${cons}`] || 0;
+                                  const color = GET_RISK_COLOR(val, rankings);
+                                  return (
+                                    <td key={lik} className="border border-slate-300 p-0 relative group" style={{ backgroundColor: color.bg }}>
+                                      <select
+                                        className="w-full h-full min-h-[80px] bg-transparent text-center font-black text-lg cursor-pointer outline-none appearance-none px-2"
+                                        style={{ color: color.text }}
+                                        value={val}
+                                        onChange={e => handleMatrixCellUpdate(lik, cons, e.target.value)}>
+                                        <option value="0">-</option>
+                                        {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}</option>)}
+                                      </select>
+                                      <ChevronDown size={10} className="absolute bottom-1 right-1 opacity-30 group-hover:opacity-80" style={{ color: color.text }} />
+                                    </td>
+                                  );
+                                })}
+                                {/* Risk ranking legend */}
+                                <td className="border border-slate-300 p-2 bg-slate-50 align-middle">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-sm shrink-0" style={{ backgroundColor: rColor.bg, color: rColor.text }}>
+                                      {ranking.code || '-'}
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-black text-slate-700 uppercase">{ranking.description?.split('—')[0]?.trim() || ''}</p>
+                                      <p className="text-[8px] text-slate-400 font-bold">{ranking.description?.split('—')[1]?.trim() || ''}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {/* Likelihood footer label */}
+                          <tr className="bg-slate-100 border-t-2 border-slate-400">
+                            <td className="border border-slate-300 p-2 bg-[#004a7c] text-center text-[9px] font-black text-teal-300 uppercase tracking-widest">↓ Consequence</td>
+                            {LIK_COLS.map(l => (
+                              <td key={l} className="border border-slate-300 p-2 text-center text-[9px] font-black text-slate-500 bg-[#004a7c] text-white">{l}</td>
+                            ))}
+                            <td className="border border-slate-300 bg-slate-200 p-2 text-[8px] text-slate-500 font-black text-center uppercase tracking-widest">Likelihood →</td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      {/* Legend note from reference */}
+                      <div className="p-4 bg-slate-50 border-t border-slate-200">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Risk Level Reference (from Gharda HAZOP Format)</p>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {rankings.slice().reverse().map(r => {
+                            const c = GET_RISK_COLOR(parseInt(r.code), rankings);
+                            return (
+                              <div key={r.id} className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded font-black text-xs flex items-center justify-center shadow-sm" style={{ backgroundColor: c.bg, color: c.text }}>{r.code}</div>
+                                <span className="text-[9px] font-bold text-slate-600">{r.description?.split('—')[0]?.trim()}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[8px] text-slate-400 font-bold mt-2">Risk = Severity (S) × Probability (P). Select a value 1–5 in each cell to set the risk ranking for that combination.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: LIKELIHOOD ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'likelihoods' && (
+              <div className="flex flex-col h-full bg-slate-50">
+                <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Likelihood Categories
+                  </h2>
+                </div>
+                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto bg-[#c0c0c0]/10 p-4">
+                  <div className="bg-white border border-slate-300 shadow-md rounded-sm overflow-hidden w-fit">
+                    <table className="text-left border-collapse table-fixed">
+                      <thead className="bg-[#004a7c] text-white text-[11px] font-bold uppercase border-b-2 border-slate-400">
+                        <tr>
+                          <th className="p-3 border border-slate-300 w-24 text-center">Code</th>
+                          <th className="p-3 border border-slate-300 w-64 text-center">Description</th>
+                          <th className="p-3 border border-slate-300 w-80 text-center">Likelihood / Frequency</th>
+                          <th className="p-3 border border-slate-300 w-96 text-center">Probability Range</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-200">
+                        {[
+                          { code:'VL', rating:1, desc:'Very Low',  freq:'Once in two years or more',                  prob:'0–10%',   color:'#16a34a' },
+                          { code:'L',  rating:2, desc:'Low',       freq:'Once in a year / more than once in 2 years', prob:'10–30%',  color:'#fbbf24' },
+                          { code:'M',  rating:3, desc:'Medium',    freq:'Once in 6 months / more than once in a year',prob:'30–50%',  color:'#f97316' },
+                          { code:'H',  rating:4, desc:'High',      freq:'Once in a quarter / more than once in 6 months',prob:'50–80%',color:'#dc2626'},
+                          { code:'VH', rating:5, desc:'Very High', freq:'Once a month / more than once in a quarter', prob:'80–100%', color:'#7f1d1d' },
+                        ].map(r => (
+                          <tr key={r.code} className="h-10 hover:bg-blue-50 transition-colors">
+                            <td className="p-3 border border-slate-300 text-center">
+                              <span className="inline-flex items-center justify-center w-10 h-7 rounded font-black text-xs text-white" style={{ backgroundColor: r.color }}>{r.code}</span>
+                            </td>
+                            <td className="p-3 border border-slate-300 font-bold text-slate-700 text-xs">{r.rating} — {r.desc}</td>
+                            <td className="p-3 border border-slate-300 text-xs text-slate-600 font-bold">{r.freq}</td>
+                            <td className="p-3 border border-slate-300 text-xs text-slate-500 font-bold">{r.prob}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* ── RISK CRITERIA: CONSEQUENCES ── */}
             {activeTopTab === 'risk' && activeSideTab === 'consequences' && (
-              <div className="max-w-3xl mx-auto p-8 space-y-6">
-                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Consequence Categories</h3>
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#004a7c] text-white text-[10px] font-black uppercase">
-                      <tr><th className="p-4 border-r border-white/10">Severity</th><th className="p-4 border-r border-white/10">Description</th><th className="p-4">Impact Level</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {[{ code: '1', desc: 'Minor',      impact: 'Negligible' }, { code: '2', desc: 'Moderate',   impact: 'Limited' },
-                        { code: '3', desc: 'Serious',    impact: 'Significant' }, { code: '4', desc: 'Major',      impact: 'Extensive' },
-                        { code: '5', desc: 'Catastrophic',impact: 'Massive'    }].map(r => (
-                        <tr key={r.code} className="hover:bg-slate-50">
-                          <td className="p-4 font-black text-red-600">{r.code}</td>
-                          <td className="p-4 font-bold text-slate-700">{r.desc}</td>
-                          <td className="p-4 font-bold text-slate-500">{r.impact}</td>
+              <div className="flex flex-col h-full bg-slate-50">
+                <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Consequence Categories
+                  </h2>
+                  <select className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
+                    value={riskMatrixChannel} onChange={e => setRiskMatrixChannel(e.target.value)}>
+                    {RISK_CHANNELS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
+                  </select>
+                </div>
+                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
+                  <div className="flex items-center gap-1">
+                    <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto bg-[#c0c0c0]/10 p-4">
+                  <div className="bg-white border border-slate-300 shadow-md rounded-sm overflow-hidden w-fit">
+                    <table className="text-left border-collapse table-fixed">
+                      <thead className="bg-[#004a7c] text-white text-[11px] font-bold uppercase border-b-2 border-slate-400">
+                        <tr>
+                          <th className="p-3 border border-slate-300 w-24 text-center">Code</th>
+                          <th className="p-3 border border-slate-300 w-48 text-center">Severity Rating</th>
+                          <th className="p-3 border border-slate-300 w-[700px] text-center">Factors to Consider ({riskMatrixChannel})</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-300">
+                        {[
+                          { code:'VH', rating:5, color:'#7f1d1d', factors: {
+                            Safety:      'Fatality or permanent total disability ≥1 person; permanent partial disability ≥5 persons; ≥20 persons injured with combined man-days lost ≥60',
+                            Environment: 'Serious environment impact (multiple damages), effect >24 hrs and irreversible; hazardous spill ≥10,000 kg; non-hazardous spill ≥20,000 kg',
+                            Assets:      'Financial loss ≥ Rs.10 crores; interruption to services 1 month or more; closure notice / penalty / reputation loss',
+                            Community:   'Incarceration; direct intervention of Board or Stakeholders required; major community impact',
+                            Reputation:  'Loss of reputation/brand; national media coverage; permanent regulatory action',
+                          }},
+                          { code:'H', rating:4, color:'#dc2626', factors: {
+                            Safety:      'Notifiable disease; lost-time injury requiring hospitalization; multiple medical treatment cases',
+                            Environment: 'Moderate environment impact, reversible >24 hrs; hazardous spill 1,000–10,000 kg; significant regulatory interest',
+                            Assets:      'Financial loss Rs.5–10 crores; interruption to services fortnight; show cause notice',
+                            Community:   'Managing Director attention required; significant community complaints; local media coverage',
+                            Reputation:  'Regional media coverage; regulatory investigation; temporary suspension of operations',
+                          }},
+                          { code:'M', rating:3, color:'#f97316', factors: {
+                            Safety:      'Medical treatment case; restricted work; multiple first-aid cases with follow-up',
+                            Environment: 'Minor environment impact, reversible within 24 hrs; contained spill; regulatory notification required',
+                            Assets:      'Financial loss Rs.1–5 crores; interruption to services 1 week; internal investigation report',
+                            Community:   'Community complaints requiring formal response; local authority notification',
+                            Reputation:  'Local media coverage; customer complaints; temporary reputational damage',
+                          }},
+                          { code:'L', rating:2, color:'#fbbf24', factors: {
+                            Safety:      'First-aid case only; minor injury not requiring medical treatment',
+                            Environment: 'Negligible environment impact; contained within site; no regulatory notification required',
+                            Assets:      'Financial loss < Rs.1 crore; minor equipment damage; interruption <1 day',
+                            Community:   'Minor community inconvenience; no formal complaint; internal awareness',
+                            Reputation:  'Internal reputational concern; no external visibility; corrected within department',
+                          }},
+                          { code:'VL', rating:1, color:'#16a34a', factors: {
+                            Safety:      'No injury; near-miss with no potential for harm',
+                            Environment: 'No measurable environment impact; no release outside process',
+                            Assets:      'Negligible financial impact; no equipment damage; fully contained',
+                            Community:   'No community impact; no external notification required',
+                            Reputation:  'No reputational impact; internal improvement opportunity only',
+                          }},
+                        ].map(r => (
+                          <tr key={r.code} className="hover:bg-blue-50 transition-colors align-top">
+                            <td className="p-3 border border-slate-300 text-center align-middle">
+                              <span className="inline-flex items-center justify-center w-10 h-7 rounded font-black text-xs text-white" style={{ backgroundColor: r.color }}>{r.code}</span>
+                            </td>
+                            <td className="p-3 border border-slate-300 font-black text-slate-700 text-xs align-middle">{r.rating} — {r.code === 'VH' ? 'Very High' : r.code === 'H' ? 'High' : r.code === 'M' ? 'Medium' : r.code === 'L' ? 'Low' : 'Very Low'}</td>
+                            <td className="p-3 border border-slate-300 text-xs text-slate-600 font-bold leading-relaxed">{r.factors[riskMatrixChannel] || r.factors.Safety}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* ── RISK CRITERIA: RANKINGS ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'rankings' && (
+              <IndustrialRegistryView
+                title="Risk Rankings"
+                items={studyData.rankings || DEFAULT_RANKINGS}
+                columns={studyData.rankingColumns || DEFAULT_RANKING_COLS}
+                updateServer={updateServer}
+                moduleKey="rankings"
+                setShowColManager={setShowColManager}
+              />
             )}
 
             {/* ── PHA WORKSHEET ── */}
