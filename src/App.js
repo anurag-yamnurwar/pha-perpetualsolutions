@@ -7,112 +7,175 @@ import {
   Copy, Scissors, Clipboard, Printer, Upload, ChevronLeft,
   Columns, AlertTriangle, ChevronUp, ChevronDown, CopyPlus,
   FilePlus, FolderSync, LogOut, ArrowUp, ArrowDown,
-  Settings, Check, FileUp, ClipboardCheck, Zap, Grid3X3
+  Settings, Check, FileUp, ClipboardCheck, Zap, Grid3X3,
+  Boxes, Calendar
 } from 'lucide-react';
+
+// ─────────────────────────────────────────────
+// PRINT / PDF STYLES
+// ─────────────────────────────────────────────
+
+const PRINT_STYLES = `
+@media print {
+  @page {
+    size: A3 landscape;
+    margin: 10mm 8mm;
+  }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  header, nav, aside { display: none !important; }
+  main { overflow: visible !important; }
+  .custom-scroll { overflow: visible !important; }
+  .flex-1 { overflow: visible !important; }
+  .min-w-max { min-width: 100% !important; }
+  table { width: 100% !important; table-layout: fixed !important; font-size: 7px !important; }
+  th, td { padding: 2px 3px !important; font-size: 7px !important; }
+  .divide-y > div { break-inside: avoid; page-break-inside: avoid; }
+  .overflow-hidden { overflow: visible !important; }
+  .overflow-auto { overflow: visible !important; }
+  .pha-header-block { display: block !important; }
+  .sticky { position: relative !important; }
+  [style*="background-color"] { -webkit-print-color-adjust: exact; }
+}
+`;
+
+const injectPrintStyles = () => {
+  const existing = document.getElementById('pha-print-styles');
+  if (!existing) {
+    const style = document.createElement('style');
+    style.id = 'pha-print-styles';
+    style.textContent = PRINT_STYLES;
+    document.head.appendChild(style);
+  }
+};
+
+const handlePrintAction = () => {
+  injectPrintStyles();
+  setTimeout(() => window.print(), 100);
+};
+
+const handleDownloadPDF = () => {
+  injectPrintStyles();
+  setTimeout(() => window.print(), 150);
+};
 
 // ─────────────────────────────────────────────
 // CONSTANTS & COLUMN DEFINITIONS
 // ─────────────────────────────────────────────
 
+// Node Registry: description/intention/boundary/equipment_count only
 const DEFAULT_NODE_COLS = [
-  { id: 'description',      label: 'DESCRIPTION',       width: 140 },
-  { id: 'intention',        label: 'INTENTION',          width: 140 },
-  { id: 'boundary',         label: 'BOUNDARY',           width: 140 },
-  { id: 'tag',              label: 'TAG NO.',            width: 100 },
-  { id: 'designConditions', label: 'DESIGN CONDITIONS',  width: 150 },
-  { id: 'capacity',         label: 'CAPACITY',           width: 100 },
-  { id: 'moc',              label: 'MOC',                width: 100 },
-  { id: 'temp',             label: 'DESIGN TEMP',        width: 100 },
-  { id: 'pres',             label: 'DESIGN PRES',        width: 100 },
+  { id: 'description',   label: 'DESCRIPTION',  width: 250 },
+  { id: 'intention',     label: 'INTENTION',    width: 250 },
+  { id: 'boundary',      label: 'BOUNDARY',     width: 200 },
+  { id: 'equipment_count', label: 'EQ. COUNT',  width: 80, isAuto: true },
+];
+
+// Equipment columns (per node, inside Equipment Modal)
+const DEFAULT_EQUIPMENT_COLS = [
+  { id: 'tag',              label: 'TAG NO.',           width: 120 },
+  { id: 'description',     label: 'EQUIPMENT NAME',    width: 180 },
+  { id: 'designConditions',label: 'DESIGN CONDITIONS', width: 150 },
+  { id: 'capacity',        label: 'CAPACITY',           width: 100 },
+  { id: 'moc',             label: 'MOC',                width: 100 },
+  { id: 'temp',            label: 'DESIGN TEMP',        width: 100 },
+  { id: 'pres',            label: 'DESIGN PRES',        width: 100 },
 ];
 
 const DEFAULT_PID_COLS = [
-  { id: 'drawingId',    label: 'DRAWING ID',      width: 160 },
-  { id: 'revision',     label: 'REV.',             width:  60 },
-  { id: 'docType',      label: 'DOCUMENT TYPE',    width: 160 },
-  { id: 'description',  label: 'DESCRIPTION',      width: 320 },
-  { id: 'link',         label: 'HYPERLINK / URL',  width: 220 },
-  { id: 'attachment',   label: 'ATTACHMENT',       width: 250, type: 'file' },
+  { id: 'drawingId',   label: 'DRAWING ID',     width: 160 },
+  { id: 'revision',    label: 'REV.',            width:  60 },
+  { id: 'docType',     label: 'DOCUMENT TYPE',  width: 160 },
+  { id: 'description', label: 'DESCRIPTION',    width: 320 },
+  { id: 'link',        label: 'HYPERLINK / URL', width: 220 },
+  { id: 'attachment',  label: 'ATTACHMENT',     width: 250, type: 'file' },
 ];
 
 const DEFAULT_DEVIATION_COLS = [
-  { id: 'guideword',     label: 'GUIDEWORDS',             width: 120, textColor: 'text-blue-600'  },
-  { id: 'parameter',     label: 'PARAMETER',              width: 120, textColor: 'text-green-600' },
-  { id: 'material',      label: 'PROCESS FLOW / MATERIAL',width: 180, textColor: 'text-orange-600'},
-  { id: 'locationFrom',  label: 'LOCATION FROM',          width: 140, textColor: 'text-red-500'   },
-  { id: 'locationTo',    label: 'LOCATION TO',            width: 140, textColor: 'text-purple-600' },
-  { id: 'deviationStr',  label: 'DEVIATION (AUTO)',       width: 350, isAuto: true                },
+  { id: 'guideword',    label: 'GUIDEWORDS',              width: 120, textColor: 'text-blue-600'   },
+  { id: 'parameter',    label: 'PARAMETER',               width: 120, textColor: 'text-green-600'  },
+  { id: 'material',     label: 'PROCESS FLOW / MATERIAL', width: 180, textColor: 'text-orange-600' },
+  { id: 'locationFrom', label: 'LOCATION FROM',           width: 140, textColor: 'text-red-500'    },
+  { id: 'locationTo',   label: 'LOCATION TO',             width: 140, textColor: 'text-purple-600' },
+  { id: 'deviationStr', label: 'DEVIATION (AUTO)',        width: 350, isAuto: true                 },
 ];
 
 const DEFAULT_CAUSE_COLS = [
-  { id: 'description', label: 'CAUSE DESCRIPTION',   width: 400 },
-  { id: 'category',    label: 'CATEGORY / TYPE',      width: 150 },
-  { id: 'source',      label: 'SOURCE / REFERENCE',   width: 150 },
-  { id: 'comments',    label: 'COMMENTS',             width: 220 },
+  { id: 'description', label: 'CAUSE DESCRIPTION',  width: 400 },
+  { id: 'category',    label: 'CATEGORY / TYPE',     width: 150 },
+  { id: 'source',      label: 'SOURCE / REFERENCE',  width: 150 },
+  { id: 'comments',    label: 'COMMENTS',            width: 220 },
 ];
 
 const DEFAULT_REC_COLS = [
-  { id: 'description',    label: 'PHA RECOMMENDATION',   width: 360 },
-  { id: 'priority',       label: 'PRIORITY',             width:  90, type: 'select', opts: ['High','Medium','Low'] },
-  { id: 'responsibility', label: 'RESPONSIBLE PARTY',    width: 160 },
-  { id: 'status',         label: 'STATUS',               width: 160, type: 'select', opts: ['Proposed','Pending','Under Review','In Progress','Completed','Implemented','Closed','Removed','Not Applicable'] },
-  { id: 'dueDate',        label: 'DUE DATE',             width: 120, type: 'date'   },
-  { id: 'comments',       label: 'COMMENTS',             width: 220 },
-  { id: 'reference',      label: 'REF.',                 width:  70, group: 'Risk Reference', isAuto: true },
-  { id: 'cat',            label: 'CAT',                  width:  55, group: 'Risk Reference' },
-  { id: 's_before',       label: 'S',                    width:  45, group: 'Inherent Risk', isRisk: true },
-  { id: 'l_before',       label: 'L',                    width:  45, group: 'Inherent Risk', isRisk: true },
-  { id: 'rr_before',      label: 'RR',                   width:  55, group: 'Inherent Risk', isCalculated: true },
-  { id: 's_curr',         label: 'S',                    width:  45, group: 'Mitigated Risk', isRisk: true },
-  { id: 'l_curr',         label: 'L',                    width:  45, group: 'Mitigated Risk', isRisk: true },
-  { id: 'rr_curr',        label: 'RR',                   width:  55, group: 'Mitigated Risk', isCalculated: true },
-  { id: 's_after',        label: 'S',                    width:  45, group: 'Residual Risk', isRisk: true },
-  { id: 'l_after',        label: 'L',                    width:  45, group: 'Residual Risk', isRisk: true },
-  { id: 'rr_after',       label: 'RR',                   width:  55, group: 'Residual Risk', isCalculated: true },
+  { id: 'description',    label: 'PHA RECOMMENDATION',  width: 360 },
+  { id: 'priority',       label: 'PRIORITY',            width:  90, type: 'select', opts: ['High','Medium','Low'] },
+  { id: 'responsibility', label: 'RESPONSIBLE PARTY',   width: 160 },
+  { id: 'status',         label: 'STATUS',              width: 160, type: 'select', opts: ['Proposed','Pending','Under Review','In Progress','Completed','Implemented','Closed','Removed','Not Applicable'] },
+  { id: 'dueDate',        label: 'DUE DATE',            width: 120, type: 'date'   },
+  { id: 'comments',       label: 'COMMENTS',            width: 220 },
+  { id: 'reference',      label: 'REF.',                width:  70, group: 'Risk Reference', isAuto: true },
+  { id: 'cat',            label: 'CAT',                 width:  55, group: 'Risk Reference' },
+  { id: 's_before',       label: 'S',                   width:  45, group: 'Inherent Risk', isRisk: true },
+  { id: 'p_before',       label: 'P',                   width:  45, group: 'Inherent Risk', isRisk: true },
+  { id: 'ir_val',         label: 'IR',                  width:  55, group: 'Inherent Risk', isCalculated: true },
+  { id: 's_after',        label: 'S',                   width:  45, group: 'Residual Risk', isRisk: true },
+  { id: 'p_after',        label: 'P',                   width:  45, group: 'Residual Risk', isRisk: true },
+  { id: 'rr_val',         label: 'RR',                  width:  55, group: 'Residual Risk', isCalculated: true },
 ];
 
 const PHA_COLUMN_DEFS = [
-  { id: 'sr',         label: 'Sr.',             width: '50px',  fixed: true },
-  { id: 'gword',      label: 'Guide Word',      width: '120px', visible: true, isRegistryLink: true },
-  { id: 'param',      label: 'Parameter',       width: '120px', visible: true, isRegistryLink: true },
-  { id: 'mat',        label: 'Material',        width: '120px', visible: true, isRegistryLink: true },
-  { id: 'from',       label: 'From',            width: '110px', visible: true, isRegistryLink: true },
-  { id: 'to',         label: 'To',              width: '110px', visible: true, isRegistryLink: true },
-  { id: 'dev',        label: 'Deviation',       width: '280px', visible: true, isAuto: true },
-  { id: 'causes',     label: 'Causes',          width: '320px', visible: true, isBullet: true },
-  { id: 'consImm',    label: 'Immediate',       width: '220px', visible: true, group: '#Consequences', isBullet: true },
-  { id: 'consUlt',    label: 'Ultimate',        width: '220px', visible: true, group: '#Consequences', isBullet: true },
-  { id: 'safeguards', label: 'Safeguards',      width: '280px', visible: true, labelAlt: 'Present Protection', isBullet: true },
-  { id: 'rawS',       label: 'S',               width: '50px',  visible: true, group: 'Risk Matrix', isRisk: true },
-  { id: 'rawL',       label: 'P',               width: '50px',  visible: true, group: 'Risk Matrix', isRisk: true },
-  { id: 'rawR',       label: 'Risk',            width: '70px',  visible: true, group: 'Risk Matrix', isCalculated: true, labelAlt: 'S×P=Risk' },
-  { id: 'recs',       label: 'Recommendations', width: '320px', visible: true, labelAlt: 'Additional Protection', isBullet: true },
-  { id: 'resS',       label: 'S',               width: '50px',  visible: true, group: 'Residual Risk', isRisk: true },
-  { id: 'resL',       label: 'P',               width: '50px',  visible: true, group: 'Residual Risk', isRisk: true },
-  { id: 'resRR',      label: 'RR',              width: '70px',  visible: true, group: 'Residual Risk', isCalculated: true, labelAlt: 'S×P=RR' },
-  { id: 'remarks',    label: 'Remarks',         width: '180px', visible: true, labelAlt: 'Remarks (if any)' },
+  { id: 'sr',         label: 'Sr. No.',                                        width: '50px',  fixed: true },
+  { id: 'gword',      label: 'Guide Word',                                     width: '120px', visible: true, isRegistryLink: true },
+  { id: 'param',      label: 'Parameter',                                      width: '120px', visible: true, isRegistryLink: true },
+  { id: 'mat',        label: 'Material',                                       width: '120px', visible: true, isRegistryLink: true },
+  { id: 'from',       label: 'From',                                           width: '110px', visible: true, isRegistryLink: true },
+  { id: 'to',         label: 'To',                                             width: '110px', visible: true, isRegistryLink: true },
+  { id: 'dev',        label: 'Deviations',                                     width: '250px', visible: true, isAuto: true },
+  { id: 'causes',     label: 'Causes',                                         width: '280px', visible: true, isBullet: true },
+  { id: 'consImm',    label: 'Immediate',                                      width: '180px', visible: true, group: 'Consequences', isBullet: true },
+  { id: 'consUlt',    label: 'Ultimate',                                       width: '180px', visible: true, group: 'Consequences', isBullet: true },
+  { id: 'rawS',       label: 'S',                                              width: '45px',  visible: true, group: 'Inherent Risk', isRisk: true },
+  { id: 'rawL',       label: 'P',                                              width: '45px',  visible: true, group: 'Inherent Risk', isRisk: true },
+  { id: 'rawR',       label: 'IR',                                             width: '60px',  visible: true, group: 'Inherent Risk', isCalculated: true },
+  { id: 'safeguards', label: 'Present / Planned Protection (Safeguards)',      width: '280px', visible: true, isBullet: true },
+  { id: 'mitS',       label: 'S',                                              width: '45px',  visible: true, group: 'Mitigated Risk', isRisk: true },
+  { id: 'mitL',       label: 'P',                                              width: '45px',  visible: true, group: 'Mitigated Risk', isRisk: true },
+  { id: 'mitR',       label: 'MR',                                             width: '60px',  visible: true, group: 'Mitigated Risk', isCalculated: true },
+  { id: 'recs',       label: 'Additional Protection Needed (Recommendations)', width: '300px', visible: true, isBullet: true },
+  { id: 'resS',       label: 'S',                                              width: '45px',  visible: true, group: 'Residual Risk', isRisk: true },
+  { id: 'resL',       label: 'P',                                              width: '45px',  visible: true, group: 'Residual Risk', isRisk: true },
+  { id: 'resRR',      label: 'RR',                                             width: '60px',  visible: true, group: 'Residual Risk', isCalculated: true },
+  { id: 'remarks',    label: 'Remarks',                                        width: '150px', visible: true },
+  { id: 'status',     label: 'Status',                                         width: '120px', visible: true, type: 'select', opts: ['Proposed','Pending','Implemented','Closed'] },
 ];
 
 const TOP_TABS = [
-  { id: 'data',       label: 'Study Data',        Icon: FileText      },
-  { id: 'nodes',      label: 'Nodes',             Icon: Map           },
-  { id: 'deviations', label: 'Deviations',        Icon: Layers        },
-  { id: 'causes',     label: 'Causes Worksheet',  Icon: Target        },
-  { id: 'pha',        label: 'PHA Worksheets',    Icon: ClipboardList },
-  { id: 'recs',       label: 'Recommendations',   Icon: ClipboardCheck},
-  { id: 'checklists', label: 'Check Lists',       Icon: ListChecks    },
-  { id: 'risk',       label: 'Risk Criteria',     Icon: Activity      },
+  { id: 'data',       label: 'Study Data',       Icon: FileText       },
+  { id: 'nodes',      label: 'Nodes',            Icon: Map            },
+  { id: 'deviations', label: 'Deviations',       Icon: Layers         },
+  { id: 'causes',     label: 'Causes Worksheet', Icon: Target         },
+  { id: 'pha',        label: 'PHA Worksheets',   Icon: ClipboardList  },
+  { id: 'recs',       label: 'Recommendations',  Icon: ClipboardCheck },
+  { id: 'checklists', label: 'Check Lists',      Icon: ListChecks     },
+  { id: 'risk',       label: 'Risk Criteria',    Icon: Activity       },
 ];
 
 const SIDE_NAV = {
-  data:       [{ id: 'overview',  label: 'Overview',             Icon: FileSearch  }, { id: 'team',      label: 'Team Members', Icon: Users   }, { id: 'documents', label: 'Documents', Icon: Archive }],
-  nodes:      [{ id: 'list',      label: 'Node Registry',        Icon: Map         }, { id: 'pids',      label: 'P&ID Reference', Icon: Archive }],
-  deviations: [{ id: 'list',      label: 'Deviations Registry',  Icon: Layers      }],
-  causes:     [{ id: 'list',      label: 'Causes Registry',      Icon: Target      }],
-  recs:       [{ id: 'list',      label: 'Action Items',         Icon: ClipboardCheck }],
-  checklists: [{ id: 'list',      label: 'Checklist Registry',   Icon: ListChecks  }],
-  pha:        [{ id: 'sheet',     label: 'Analysis Sheet',       Icon: ClipboardList }, { id: 'summary', label: 'Risk Summary', Icon: Activity }],
-  risk:       [{ id: 'matrix', label: 'Risk Matrix', Icon: Grid3X3 }, { id: 'likelihoods', label: 'Likelihood Categories', Icon: Activity }, { id: 'consequences', label: 'Consequence Categories', Icon: AlertTriangle }, { id: 'rankings', label: 'Risk Rankings', Icon: Zap }],
+  data:       [{ id: 'overview',  label: 'Overview',            Icon: FileSearch   }, { id: 'team',      label: 'Team Members',         Icon: Users        }, { id: 'documents', label: 'Documents', Icon: Archive }],
+  nodes:      [{ id: 'list',      label: 'Node Registry',       Icon: Map          }, { id: 'pids',      label: 'P&ID Reference',        Icon: Archive      }],
+  deviations: [{ id: 'list',      label: 'Deviations Registry', Icon: Layers       }],
+  causes:     [{ id: 'list',      label: 'Causes Registry',     Icon: Target       }],
+  recs:       [{ id: 'list',      label: 'Action Items',        Icon: ClipboardCheck }],
+  checklists: [{ id: 'list',      label: 'Checklist Registry',  Icon: ListChecks   }],
+  pha:        [{ id: 'sheet',     label: 'Analysis Sheet',      Icon: ClipboardList }, { id: 'summary',   label: 'Risk Summary',          Icon: Activity     }],
+  risk:       [
+    { id: 'matrix',       label: 'Risk Matrix',             Icon: Grid3X3      },
+    { id: 'likelihoods',  label: 'Likelihood Categories',   Icon: Activity     },
+    { id: 'consequences', label: 'Consequence Categories',  Icon: AlertTriangle },
+    { id: 'rankings',     label: 'Risk Rankings',           Icon: Zap          },
+  ],
 };
 
 // ─────────────────────────────────────────────
@@ -121,8 +184,6 @@ const SIDE_NAV = {
 
 const RISK_CHANNELS = ['Safety', 'Environment', 'Assets', 'Community', 'Reputation'];
 
-// Default 5×5 matrix values per channel (Consequence rows: VH→VL, Likelihood cols: VL→VH)
-// Based on Gharda reference: values 1-5 by risk level
 const DEFAULT_MATRIX_VALUES = {
   VH: { VL: 3, L: 3, M: 4, H: 4, VH: 5 },
   H:  { VL: 2, L: 3, M: 3, H: 4, VH: 4 },
@@ -159,13 +220,15 @@ const DEFAULT_RANKINGS = [
   { id: 'r1', code: '1', description: 'Very Low — Acceptable risk',             color: '#16a34a', priority: '5' },
 ];
 
-const RISK_STYLE = (val) => {
-  if (!val || val === 0) return 'bg-slate-100 text-slate-400';
-  if (val >= 5) return 'bg-red-800 text-white';
-  if (val >= 4) return 'bg-red-600 text-white';
-  if (val >= 3) return 'bg-orange-500 text-white';
-  if (val >= 2) return 'bg-yellow-400 text-amber-900';
-  return 'bg-emerald-600 text-white';
+const GET_DYNAMIC_RISK_STYLE = (score, rankings = []) => {
+  const s = parseInt(score) || 0;
+  if (s === 0) return { backgroundColor: '#f1f5f9', color: '#94a3b8' };
+  const match = (rankings || []).find(r => parseInt(r.code) === s);
+  if (match) return { backgroundColor: match.color || '#fff', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.3)' };
+  if (s >= 16) return { backgroundColor: '#dc2626', color: '#fff' };
+  if (s >= 10) return { backgroundColor: '#f97316', color: '#fff' };
+  if (s >= 5)  return { backgroundColor: '#fbbf24', color: '#92400e' };
+  return { backgroundColor: '#10b981', color: '#fff' };
 };
 
 const GET_RISK_COLOR = (score, rankings = []) => {
@@ -177,6 +240,15 @@ const GET_RISK_COLOR = (score, rankings = []) => {
   if (score >= 3)  return { bg: '#f97316', text: '#fff' };
   if (score >= 2)  return { bg: '#fbbf24', text: '#92400e' };
   return { bg: '#16a34a', text: '#fff' };
+};
+
+const RISK_STYLE = (val) => {
+  if (!val || val === 0) return 'bg-slate-100 text-slate-400';
+  if (val >= 5) return 'bg-red-800 text-white';
+  if (val >= 4) return 'bg-red-600 text-white';
+  if (val >= 3) return 'bg-orange-500 text-white';
+  if (val >= 2) return 'bg-yellow-400 text-amber-900';
+  return 'bg-emerald-600 text-white';
 };
 
 // ─────────────────────────────────────────────
@@ -263,7 +335,6 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
   );
 }
 
-// ─── StudyModalForm (kept from App.js — welcome screen unchanged) ───
 function ModalField({ label, val, onChange, type = 'text', opts = [] }) {
   return (
     <div className="flex items-center gap-4 group py-1 border-b border-slate-50 last:border-0">
@@ -290,12 +361,12 @@ function StudyModalForm({ onSubmit, onCancel }) {
       <ModalField label="Contact Info"      val={form.contact}     onChange={v => setForm({ ...form, contact: v })} />
       <ModalField label="Facility"          val={form.facility}    onChange={v => setForm({ ...form, facility: v })} />
       <ModalField label="Owner"             val={form.owner}       onChange={v => setForm({ ...form, owner: v })} />
-      <ModalField label="Unit"              val={form.unit}        onChange={v => setForm({ ...form, unit: v })} />
+      <ModalField label="Plant / Unit"      val={form.unit}        onChange={v => setForm({ ...form, unit: v })} />
       <ModalField label="PHA Type"   val={form.type}   type="select" opts={['HAZOP','LOPA','What-If','Checklist']} onChange={v => setForm({ ...form, type: v })} />
       <ModalField label="Study Status" val={form.status} type="select" opts={['Planned','Draft','Approved']}        onChange={v => setForm({ ...form, status: v })} />
       <div className="p-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50 mt-4 rounded-b-lg">
         <button onClick={onCancel} className="px-6 py-2 rounded border border-slate-300 font-bold text-xs hover:bg-white cursor-pointer transition-colors text-slate-500 uppercase tracking-widest">Cancel</button>
-        <button onClick={() => onSubmit(form)} className="px-10 py-2 bg-[#004a7c] text-white rounded font-bold text-xs shadow-lg active:scale-95 transition-all cursor-pointer uppercase tracking-widest">Create Study File</button>
+        <button onClick={() => onSubmit(form)} className="px-10 py-2 bg-[#004a7c] text-white rounded font-bold text-xs shadow-lg active:scale-95 transition-all cursor-pointer uppercase tracking-widest">Create</button>
       </div>
     </div>
   );
@@ -357,9 +428,23 @@ const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
   );
 
   if (col.isCalculated) {
-    const score = (parseInt(col.id === 'rawR' ? row.rawS : row.resS) || 0) * (parseInt(col.id === 'rawR' ? row.rawL : row.resL) || 0);
-    return <div className={`w-full h-full flex items-center justify-center font-black text-xs ${RISK_STYLE(score)} shadow-inner`}>{score || '-'}</div>;
+    let s, l;
+    if (col.id === 'rawR')  { s = row.rawS; l = row.rawL; }
+    else if (col.id === 'mitR') { s = row.mitS; l = row.mitL; }
+    else { s = row.resS; l = row.resL; }
+    const score = (parseInt(s) || 0) * (parseInt(l) || 0);
+    const style = GET_DYNAMIC_RISK_STYLE(score, []);
+    return <div className="w-full h-full flex items-center justify-center font-black text-xs shadow-inner" style={style}>{score || '-'}</div>;
   }
+
+  if (col.type === 'select') return (
+    <div className="w-full h-full flex items-center px-1">
+      <select className="w-full h-10 bg-transparent font-bold text-xs outline-none cursor-pointer px-2" value={row[col.id] || ''} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)}>
+        <option value="">-</option>
+        {(col.opts || []).map((o, i) => <option key={`${o}-${i}`} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
 
   return <input className={`${base} bg-transparent text-[11px] font-bold text-slate-800 focus:bg-white`} value={String(row[col.id] || '')} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)} />;
 };
@@ -370,7 +455,8 @@ const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
 
 const IndustrialRegistryView = ({
   title, items = [], columns = [], updateServer,
-  moduleKey, setShowColManager, autoSynthesis = false, isReadOnly = false
+  moduleKey, setShowColManager, autoSynthesis = false, isReadOnly = false,
+  onExportCSV
 }) => {
   const [resizing, setResizing] = useState(null);
   const [confirm, setConfirm] = useState({ open: false, rowId: null });
@@ -389,7 +475,11 @@ const IndustrialRegistryView = ({
       const delta = e.pageX - resizing.startX;
       const newCols = [...columns];
       newCols[resizing.index] = { ...newCols[resizing.index], width: Math.max(40, resizing.startWidth + delta) };
-      const keyMap = { pids: 'pidsColumns', nodes: 'nodeColumns', deviations: 'deviationColumns', causes: 'causeColumns', recs: 'recColumns', checklists: 'checklistColumns' };
+      const keyMap = {
+        pids: 'pidsColumns', nodes: 'nodeColumns', deviations: 'deviationColumns',
+        causes: 'causeColumns', recs: 'recColumns', checklists: 'checklistColumns',
+        rankings: 'rankingColumns', equipment: 'equipmentColumns',
+      };
       const key = keyMap[moduleKey];
       if (key) updateServer({ [key]: newCols });
     };
@@ -443,8 +533,15 @@ const IndustrialRegistryView = ({
     };
     reader.readAsDataURL(file);
     setActiveFileRow(null);
-    // reset input so same file can be re-selected
     e.target.value = '';
+  };
+
+  const exportCSVLocal = () => {
+    if (onExportCSV) { onExportCSV(); return; }
+    const headers = columns.map(c => c.label).join(',');
+    const rows = items.map(row => columns.map(c => `"${String(row[c.id] || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${moduleKey}_export.csv`; a.click();
   };
 
   const groupedHeaders = useMemo(() => {
@@ -490,7 +587,9 @@ const IndustrialRegistryView = ({
           <ToolbarButton icon={<ArrowUp size={18} />} title="Move Up" />
           <ToolbarButton icon={<ArrowDown size={18} />} title="Move Down" />
           <div className="h-6 w-px bg-slate-300 mx-2" />
-          <ToolbarButton icon={<Printer size={18} />} title="Print" />
+          <ToolbarButton icon={<Printer size={18} />} onClick={() => handlePrintAction()} title="Print Registry" />
+          <div className="h-6 w-px bg-slate-300 mx-2" />
+          <ToolbarButton icon={<Download size={18} className="text-emerald-600" />} onClick={exportCSVLocal} title="Export CSV / Download" />
         </div>
       </div>
 
@@ -535,14 +634,12 @@ const IndustrialRegistryView = ({
                         </div>
                       ) : col.type === 'file' ? (
                         <div className="flex items-center gap-1.5 px-2 h-10 min-w-0">
-                          {/* Upload button */}
                           <button
                             onClick={() => { setActiveFileRow(node.id); fileInputRef.current.click(); }}
                             title="Upload / Replace File"
                             className="shrink-0 p-1.5 bg-slate-50 border border-slate-200 rounded text-[#00B2B2] hover:bg-[#00B2B2] hover:text-white transition-all shadow-sm">
                             <FileUp size={12} />
                           </button>
-                          {/* Filename + open link */}
                           {node[col.id] ? (
                             <>
                               {node.attachmentData ? (
@@ -556,7 +653,6 @@ const IndustrialRegistryView = ({
                               ) : (
                                 <span className="truncate text-[9px] font-black text-slate-500 max-w-[130px]">{node[col.id]}</span>
                               )}
-                              {/* Clear button */}
                               <button
                                 onClick={() => { handleUpdate(node.id, col.id, ''); handleUpdate(node.id, 'attachmentData', ''); handleUpdate(node.id, 'attachmentType', ''); }}
                                 title="Remove attachment"
@@ -591,6 +687,13 @@ const IndustrialRegistryView = ({
                             </a>
                           )}
                         </div>
+                      ) : col.id === 'equipment_count' ? (
+                        // Auto-computed equipment count badge
+                        <div className="w-full h-10 px-2 flex items-center justify-center">
+                          <span className="bg-[#004a7c] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
+                            {(node.equipment || []).length}
+                          </span>
+                        </div>
                       ) : (
                         <input readOnly={col.isAuto}
                           className={`w-full h-10 px-2 text-xs outline-none bg-transparent focus:bg-white font-bold ${col.textColor || 'text-slate-800'} ${col.isAuto ? 'italic cursor-default' : ''}`}
@@ -616,9 +719,9 @@ const IndustrialRegistryView = ({
       {/* Context menu */}
       {contextMenu.visible && !isReadOnly && (
         <div className="fixed z-[700] bg-white border border-slate-200 shadow-2xl rounded-2xl py-2 w-56" style={{ top: contextMenu.y, left: contextMenu.x }}>
-          <ContextItem icon={<ChevronUp size={14} />}   label="Insert Above"       onClick={() => addRowAt(contextMenu.index)} />
-          <ContextItem icon={<ChevronDown size={14} />} label="Insert Below"       onClick={() => addRowAt(contextMenu.index + 1)} />
-          <ContextItem icon={<CopyPlus size={14} />}    label="Duplicate Row"      onClick={() => duplicateRow(contextMenu.rowId)} />
+          <ContextItem icon={<ChevronUp size={14} />}   label="Insert Above"   onClick={() => addRowAt(contextMenu.index)} />
+          <ContextItem icon={<ChevronDown size={14} />} label="Insert Below"   onClick={() => addRowAt(contextMenu.index + 1)} />
+          <ContextItem icon={<CopyPlus size={14} />}    label="Duplicate Row"  onClick={() => duplicateRow(contextMenu.rowId)} />
           <div className="h-px bg-slate-100 my-1 mx-2" />
           <ContextItem icon={<Trash2 size={14} className="text-red-400" />} label="Delete Selected Row" onClick={() => setConfirm({ open: true, rowId: contextMenu.rowId })} danger />
         </div>
@@ -637,19 +740,17 @@ const IndustrialRegistryView = ({
 // COLUMN MANAGER MODAL
 // ─────────────────────────────────────────────
 
-function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab, activeSideTab, visibleCols, setVisibleCols }) {
+function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab, activeSideTab, equipmentModalOpen, visibleCols, setVisibleCols }) {
   if (!show) return null;
 
-  // Determine which column key to manage
   const colKey = (() => {
+    if (equipmentModalOpen) return 'equipmentColumns';
     if (activeTopTab === 'pha') return null;
     if (activeTopTab === 'nodes') return activeSideTab === 'pids' ? 'pidsColumns' : 'nodeColumns';
     if (activeTopTab === 'deviations') return 'deviationColumns';
     if (activeTopTab === 'causes') return 'causeColumns';
     if (activeTopTab === 'recs') return 'recColumns';
     if (activeTopTab === 'checklists') return 'checklistColumns';
-    if (activeTopTab === 'risk' && activeSideTab === 'likelihoods') return null;
-    if (activeTopTab === 'risk' && activeSideTab === 'consequences') return null;
     if (activeTopTab === 'risk' && activeSideTab === 'rankings') return 'rankingColumns';
     return null;
   })();
@@ -660,11 +761,14 @@ function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab,
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-300">
         <div className="bg-[#004a7c] px-8 py-5 flex items-center justify-between border-b border-white/10 shrink-0">
-          <h3 className="font-black text-white uppercase text-[11px] tracking-widest flex items-center gap-3"><Columns size={16} className="text-teal-400" /> Engineering Parameter Configuration</h3>
+          <h3 className="font-black text-white uppercase text-[11px] tracking-widest flex items-center gap-3">
+            <Columns size={16} className="text-teal-400" />
+            {equipmentModalOpen ? 'Equipment Column Configuration' : 'Engineering Parameter Configuration'}
+          </h3>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-white transition-all"><X size={20} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-8 space-y-6 max-h-[70vh]">
-          {activeTopTab === 'pha' ? (
+          {activeTopTab === 'pha' && !equipmentModalOpen ? (
             <div className="grid grid-cols-2 gap-3">
               {PHA_COLUMN_DEFS.map(col => (
                 <button key={col.id} onClick={() => !col.fixed && setVisibleCols(prev => ({ ...prev, [col.id]: !prev[col.id] }))}
@@ -731,6 +835,7 @@ const App = () => {
     metadata: {}, rows: [], nodes: [], pids: [], deviations: [],
     checklists: [], recs: [], safeguards: [], parking: [], causes: [],
     nodeColumns: DEFAULT_NODE_COLS,
+    equipmentColumns: DEFAULT_EQUIPMENT_COLS,
     pidsColumns: DEFAULT_PID_COLS,
     deviationColumns: DEFAULT_DEVIATION_COLS,
     causeColumns: DEFAULT_CAUSE_COLS,
@@ -739,10 +844,10 @@ const App = () => {
     rankings: DEFAULT_RANKINGS,
     riskMatrix: buildDefaultRiskMatrix(),
     checklistColumns: [
-      { id: 'category', label: 'CATEGORY', width: 180 },
-      { id: 'question', label: 'QUESTION / ITEM', width: 450 },
-      { id: 'response', label: 'RESPONSE', width: 200, type: 'select', opts: ['Yes','No','N/A','Partial'] },
-      { id: 'comments', label: 'COMMENTS', width: 300 },
+      { id: 'category', label: 'CATEGORY',          width: 180 },
+      { id: 'question', label: 'QUESTION / ITEM',   width: 450 },
+      { id: 'response', label: 'RESPONSE',          width: 200, type: 'select', opts: ['Yes','No','N/A','Partial'] },
+      { id: 'comments', label: 'COMMENTS',          width: 300 },
     ],
   });
   const [riskMatrixChannel, setRiskMatrixChannel] = useState('Safety');
@@ -753,12 +858,12 @@ const App = () => {
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, rowId: null, index: -1 });
   const [confirm, setConfirm] = useState({ open: false, rowId: null });
   const [selectedNodeId, setSelectedNodeId] = useState('');
+  // Equipment Modal state (from node-eq.js)
+  const [equipmentModal, setEquipmentModal] = useState({ open: false, nodeId: null });
 
   // ── Derived state ──
   const activeNode = useMemo(() => (studyData.nodes || []).find(n => n.id === selectedNodeId) || studyData.nodes?.[0] || {}, [studyData.nodes, selectedNodeId]);
-
   const nodeSpecificRows = useMemo(() => (studyData.rows || []).filter(r => r.nodeId === selectedNodeId), [studyData.rows, selectedNodeId]);
-
   const filteredVisibleCols = useMemo(() => PHA_COLUMN_DEFS.filter(c => visibleCols[c.id]), [visibleCols]);
 
   const recommendationsFromWorksheet = useMemo(() => {
@@ -769,23 +874,29 @@ const App = () => {
       if (row.recs && row.recs.trim()) {
         const lines = row.recs.split('\n').filter(l => l.trim().length > 3);
         lines.forEach((line, lIdx) => {
+          const existing = (studyData.recs || []).find(r => r.id === `gen-${row.id}-${lIdx}`);
           list.push({
             id: `gen-${row.id}-${lIdx}`,
             description: line.replace(/^\d+\.\s*/, '').trim(),
-            priority: 'Medium', responsibility: '', status: 'Proposed', dueDate: '', comments: '',
-            reference: `N${nodeIndex || 1}.${rowIndex}`, cat: 'Safety',
-            s_before: row.rawS || 0, l_before: row.rawL || 0,
-            rr_before: (parseInt(row.rawS) || 0) * (parseInt(row.rawL) || 0),
-            s_curr: row.rawS || 0, l_curr: row.rawL || 0,
-            rr_curr: (parseInt(row.rawS) || 0) * (parseInt(row.rawL) || 0),
-            s_after: row.resS || 0, l_after: row.resL || 0,
-            rr_after: (parseInt(row.resS) || 0) * (parseInt(row.resL) || 0),
+            priority: existing?.priority || 'Medium',
+            responsibility: existing?.responsibility || '',
+            status: existing?.status || 'Proposed',
+            dueDate: existing?.dueDate || '',
+            comments: existing?.comments || '',
+            reference: `N${nodeIndex || 1}.${rowIndex}`,
+            cat: 'Safety',
+            s_before: row.rawS || 0,
+            p_before: row.rawL || 0,
+            ir_val: (parseInt(row.rawS) || 0) * (parseInt(row.rawL) || 0),
+            s_after: row.resS || 0,
+            p_after: row.resL || 0,
+            rr_val: (parseInt(row.resS) || 0) * (parseInt(row.resL) || 0),
           });
         });
       }
     });
     return list;
-  }, [studyData.rows, studyData.nodes]);
+  }, [studyData.rows, studyData.nodes, studyData.recs]);
 
   // ── Updaters ──
   const updateServer = useCallback((newData) => {
@@ -795,7 +906,7 @@ const App = () => {
   }, []);
 
   const handleStudyUpdate = (field, val) => updateServer({ metadata: { ...studyData.metadata, [field]: val } });
-  const handleCellUpdate = (id, field, val) => updateServer({ rows: (studyData.rows || []).map(r => r.id === id ? { ...r, [field]: val } : r) });
+  const handleCellUpdate  = (id, field, val) => updateServer({ rows: (studyData.rows || []).map(r => r.id === id ? { ...r, [field]: val } : r) });
 
   const handleNodeHeaderUpdate = (field, val) => {
     if (!activeNode.id) return;
@@ -815,7 +926,8 @@ const App = () => {
       id: Date.now().toString(), nodeId: selectedNodeId,
       gword: '', param: '', mat: '', from: '', to: '', dev: '',
       causes: '1. ', consImm: '1. ', consUlt: '1. ', safeguards: '1. ',
-      rawS: 0, rawL: 0, recs: '1. ', resS: 0, resL: 0, remarks: ''
+      rawS: 0, rawL: 0, mitS: 0, mitL: 0, recs: '1. ', resS: 0, resL: 0,
+      remarks: '', status: 'Proposed'
     };
     const current = [...(studyData.rows || [])];
     if (index === -1) {
@@ -841,15 +953,15 @@ const App = () => {
     setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
-  // ✅ handleCreateStudy — Welcome screen + Create New Study kept exactly as in App.js
   const handleCreateStudy = (formData) => {
     const newStudy = {
       id: Date.now().toString(),
       metadata: { ...formData, createdAt: new Date().toISOString(), teamSize: 0 },
       rows: [],
-      nodes: [{ id: 'n1', description: 'Node 01', intention: '', boundary: '', tag: '', designConditions: '', capacity: '', moc: '', temp: '', pres: '' }],
+      nodes: [{ id: 'n1', description: 'Node 01', intention: '', boundary: '', equipment: [{ id: 'e1', tag: 'V-101', description: 'Primary Feed Vessel', designConditions: '', capacity: '', moc: '', temp: '', pres: '' }] }],
       pids: [], deviations: [], checklists: [], recs: [], safeguards: [], parking: [], causes: [],
       nodeColumns: DEFAULT_NODE_COLS,
+      equipmentColumns: DEFAULT_EQUIPMENT_COLS,
       pidsColumns: DEFAULT_PID_COLS,
       deviationColumns: DEFAULT_DEVIATION_COLS,
       causeColumns: DEFAULT_CAUSE_COLS,
@@ -858,10 +970,10 @@ const App = () => {
       rankings: DEFAULT_RANKINGS,
       riskMatrix: buildDefaultRiskMatrix(),
       checklistColumns: [
-        { id: 'category', label: 'CATEGORY', width: 180 },
+        { id: 'category', label: 'CATEGORY',        width: 180 },
         { id: 'question', label: 'QUESTION / ITEM', width: 450 },
-        { id: 'response', label: 'RESPONSE', width: 200, type: 'select', opts: ['Yes','No','N/A','Partial'] },
-        { id: 'comments', label: 'COMMENTS', width: 300 },
+        { id: 'response', label: 'RESPONSE',        width: 200, type: 'select', opts: ['Yes','No','N/A','Partial'] },
+        { id: 'comments', label: 'COMMENTS',        width: 300 },
       ],
     };
     setStudies(prev => [...prev, newStudy]);
@@ -875,17 +987,27 @@ const App = () => {
     setSyncStatus('synced');
   };
 
+  // ── Export helpers ──
   const exportCSV = () => {
     const cols = PHA_COLUMN_DEFS.filter(c => visibleCols[c.id]);
     const headers = cols.map(c => c.label).join(',');
     const csvRows = (studyData.rows || []).map(r => cols.map(c => `"${String(r[c.id] || '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([`${headers}\n${csvRows}`], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'study_report.csv'; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${studyData.metadata?.name || 'study'}_pha_report.csv`; a.click();
+  };
+
+  const exportFullStudyJSON = () => {
+    // Full export — includes all sections, attachments, equipment, notes
+    const payload = JSON.stringify(studyData, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${studyData.metadata?.name || 'study'}_full_export_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
   };
 
   // ─────────────────────────────────────────────
-  // ===================== START SCREEN =====================
-  // (PRESERVED EXACTLY — no changes as per instructions)
+  // START SCREEN
   // ─────────────────────────────────────────────
   if (view === 'start') {
     return (
@@ -918,7 +1040,7 @@ const App = () => {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               <div className="lg:col-span-4 space-y-5">
-                <CardAction onClick={() => setShowNewModal(true)} icon={<PlusCircle size={32} className="text-[#00B2B2]" />} label="Create New Study" desc="Start a fresh PHA study" />
+                <CardAction onClick={() => setShowNewModal(true)} icon={<PlusCircle size={32} className="text-[#00B2B2]" />} label="Create New Unit" desc="Start a fresh PHA study" />
                 <CardAction onClick={() => fileInputRef.current?.click()} icon={<FolderOpen size={32} className="text-slate-400" />} label="Open Local File" desc="Load study from disk" />
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json,.pha,.csv" />
               </div>
@@ -960,7 +1082,7 @@ const App = () => {
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-lg rounded-lg shadow-2xl flex flex-col overflow-hidden border border-slate-300">
               <div className="bg-slate-100 px-6 py-3 flex items-center justify-between shrink-0 border-b border-slate-200 shadow-sm">
-                <h3 className="text-slate-800 font-bold text-sm">Create New Study</h3>
+                <h3 className="text-slate-800 font-bold text-sm">Create New Unit</h3>
                 <button onClick={() => setShowNewModal(false)} className="p-1 hover:bg-slate-200 rounded transition-all cursor-pointer"><X size={16} /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-8 bg-white">
@@ -974,14 +1096,14 @@ const App = () => {
   }
 
   // ─────────────────────────────────────────────
-  // ===================== WORKSTATION =====================
+  // WORKSTATION
   // ─────────────────────────────────────────────
   return (
     <div className="h-screen w-full flex flex-col bg-white font-sans overflow-hidden select-none"
       onClick={() => contextMenu.visible && setContextMenu(prev => ({ ...prev, visible: false }))}>
 
       {/* Top Header */}
-      <header className="h-10 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0 z-[120] shadow-sm">
+      <header className="h-10 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0 z-[120] shadow-sm no-print">
         <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-2 pr-6 border-r border-slate-100">
             <div className="w-5 h-5 bg-[#0d1111] rounded flex items-center justify-center text-[10px] font-black text-white shadow-sm">PS</div>
@@ -999,7 +1121,7 @@ const App = () => {
       </header>
 
       {/* Top Tab Navigation */}
-      <nav className="h-12 bg-slate-100 border-b border-slate-200 flex items-center px-2 shrink-0 overflow-x-auto">
+      <nav className="h-12 bg-slate-100 border-b border-slate-200 flex items-center px-2 shrink-0 overflow-x-auto no-print">
         {TOP_TABS.map(tab => {
           const TabIcon = tab.Icon;
           return (
@@ -1014,7 +1136,7 @@ const App = () => {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <aside className={`${isSidebarCollapsed ? 'w-16' : 'w-56'} bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 shadow-xl`}>
+        <aside className={`${isSidebarCollapsed ? 'w-16' : 'w-56'} bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 shadow-xl no-print`}>
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between h-12 overflow-hidden shrink-0">
             {!isSidebarCollapsed && <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{TOP_TABS.find(t => t.id === activeTopTab)?.label}</h4>}
             <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-1 hover:bg-slate-200 rounded text-slate-400 cursor-pointer transition-all">
@@ -1044,31 +1166,69 @@ const App = () => {
               <div className="max-w-5xl mx-auto p-8 space-y-8">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Study Overview</h3>
-                  <button onClick={exportCSV} className="flex items-center gap-2 bg-[#0d1111] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg cursor-pointer"><Download size={14} /> Export CSV</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={exportCSV} className="flex items-center gap-2 bg-[#0d1111] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg cursor-pointer"><Download size={14} /> Export CSV</button>
+                    <button onClick={exportFullStudyJSON} className="flex items-center gap-2 bg-emerald-700 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-lg cursor-pointer"><Download size={14} /> Full Export (JSON)</button>
+                  </div>
                 </div>
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-10 space-y-4">
-                  <OverviewField label="Study Name"   val={studyData.metadata?.name}        onChange={v => handleStudyUpdate('name', v)} />
-                  <OverviewField label="Coordinator"  val={studyData.metadata?.coordinator} onChange={v => handleStudyUpdate('coordinator', v)} />
-                  <OverviewField label="Contact"      val={studyData.metadata?.contact}     onChange={v => handleStudyUpdate('contact', v)} />
-                  <OverviewField label="Facility"     val={studyData.metadata?.facility}    onChange={v => handleStudyUpdate('facility', v)} />
-                  <OverviewField label="Owner"        val={studyData.metadata?.owner}       onChange={v => handleStudyUpdate('owner', v)} />
-                  <OverviewField label="Unit"         val={studyData.metadata?.unit}        onChange={v => handleStudyUpdate('unit', v)} />
-                  <OverviewField label="PHA Type"     val={studyData.metadata?.type}        type="select" opts={['HAZOP','LOPA','What-If','Checklist']} onChange={v => handleStudyUpdate('type', v)} />
-                  <OverviewField label="Study Status" val={studyData.metadata?.status}      type="select" opts={['Planned','Draft','Approved']} onChange={v => handleStudyUpdate('status', v)} />
+                  <OverviewField label="Study Name"    val={studyData.metadata?.name}        onChange={v => handleStudyUpdate('name', v)} />
+                  <OverviewField label="Coordinator"   val={studyData.metadata?.coordinator} onChange={v => handleStudyUpdate('coordinator', v)} />
+                  <OverviewField label="Contact"       val={studyData.metadata?.contact}     onChange={v => handleStudyUpdate('contact', v)} />
+                  <OverviewField label="Facility"      val={studyData.metadata?.facility}    onChange={v => handleStudyUpdate('facility', v)} />
+                  <OverviewField label="Owner"         val={studyData.metadata?.owner}       onChange={v => handleStudyUpdate('owner', v)} />
+                  <OverviewField label="Plant / Unit"  val={studyData.metadata?.unit}        onChange={v => handleStudyUpdate('unit', v)} />
+                  <OverviewField label="PHA Type"      val={studyData.metadata?.type}        type="select" opts={['HAZOP','LOPA','What-If','Checklist']} onChange={v => handleStudyUpdate('type', v)} />
+                  <OverviewField label="Study Status"  val={studyData.metadata?.status}      type="select" opts={['Planned','Draft','Approved']}         onChange={v => handleStudyUpdate('status', v)} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <MiniStat label="Nodes"      value={studyData.nodes?.length || 0}      Icon={Map}          color="text-blue-500"   />
-                  <MiniStat label="Scenarios"  value={studyData.rows?.length || 0}       Icon={ClipboardList} color="text-teal-500"  />
-                  <MiniStat label="Drawings"   value={studyData.pids?.length || 0}       Icon={Archive}       color="text-orange-500"/>
-                  <MiniStat label="Recs"       value={recommendationsFromWorksheet.length} Icon={ClipboardCheck} color="text-purple-500"/>
+                  <MiniStat label="Nodes"     value={studyData.nodes?.length || 0}        Icon={Map}           color="text-blue-500"   />
+                  <MiniStat label="Scenarios" value={studyData.rows?.length || 0}         Icon={ClipboardList} color="text-teal-500"   />
+                  <MiniStat label="Drawings"  value={studyData.pids?.length || 0}         Icon={Archive}       color="text-orange-500" />
+                  <MiniStat label="Recs"      value={recommendationsFromWorksheet.length} Icon={ClipboardCheck} color="text-purple-500" />
                 </div>
               </div>
             )}
 
-            {/* ── NODES ── */}
+            {/* ── NODES: NODE REGISTRY (with Equipment Manager button per row) ── */}
             {activeTopTab === 'nodes' && activeSideTab === 'list' && (
-              <IndustrialRegistryView title="Nodes Registry" items={studyData.nodes || []} columns={studyData.nodeColumns || DEFAULT_NODE_COLS} updateServer={updateServer} moduleKey="nodes" setShowColManager={setShowColManager} />
+              <div className="h-full relative flex flex-col">
+                {/* Node Registry Table */}
+                <IndustrialRegistryView
+                  title="Nodes Registry"
+                  items={studyData.nodes || []}
+                  columns={studyData.nodeColumns || DEFAULT_NODE_COLS}
+                  updateServer={(data) => {
+                    // When updateServer is called from IndustrialRegistryView for nodes,
+                    // preserve existing equipment arrays on each node
+                    if (data.nodes) {
+                      const mergedNodes = data.nodes.map(newNode => {
+                        const existing = (studyData.nodes || []).find(n => n.id === newNode.id);
+                        return existing ? { ...newNode, equipment: existing.equipment || [] } : newNode;
+                      });
+                      updateServer({ nodes: mergedNodes });
+                    } else {
+                      updateServer(data);
+                    }
+                  }}
+                  moduleKey="nodes"
+                  setShowColManager={setShowColManager}
+                />
+                {/* Equipment Manager buttons overlaid per row — positioned in a floating column */}
+                <div className="absolute top-[104px] right-4 flex flex-col gap-0 pointer-events-none z-20">
+                  {(studyData.nodes || []).map((node) => (
+                    <div key={`eq-btn-${node.id}`} className="h-10 flex items-center pointer-events-auto">
+                      <button
+                        onClick={() => setEquipmentModal({ open: true, nodeId: node.id })}
+                        className="bg-[#004a7c] text-white px-3 py-1.5 rounded shadow hover:brightness-110 transition-all flex items-center gap-2 text-[9px] font-black uppercase">
+                        <Boxes size={11} /> Manage Eq.
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
+
             {activeTopTab === 'nodes' && activeSideTab === 'pids' && (
               <IndustrialRegistryView title="P&ID Reference" items={studyData.pids || []} columns={studyData.pidsColumns || DEFAULT_PID_COLS} updateServer={updateServer} moduleKey="pids" setShowColManager={setShowColManager} />
             )}
@@ -1083,9 +1243,24 @@ const App = () => {
               <IndustrialRegistryView title="Causes Registry" items={studyData.causes || []} columns={studyData.causeColumns || DEFAULT_CAUSE_COLS} updateServer={updateServer} moduleKey="causes" setShowColManager={setShowColManager} />
             )}
 
-            {/* ── RECOMMENDATIONS (auto-built from worksheet) ── */}
+            {/* ── RECOMMENDATIONS ── */}
             {activeTopTab === 'recs' && activeSideTab === 'list' && (
-              <IndustrialRegistryView title="Recommendations Management Registry" items={recommendationsFromWorksheet} columns={studyData.recColumns || DEFAULT_REC_COLS} updateServer={updateServer} moduleKey="recs" setShowColManager={setShowColManager} isReadOnly={false} />
+              <IndustrialRegistryView
+                title="Recommendations Management Registry"
+                items={recommendationsFromWorksheet}
+                columns={studyData.recColumns || DEFAULT_REC_COLS}
+                updateServer={updateServer}
+                moduleKey="recs"
+                setShowColManager={setShowColManager}
+                isReadOnly={false}
+                onExportCSV={() => {
+                  const cols = studyData.recColumns || DEFAULT_REC_COLS;
+                  const headers = cols.map(c => c.label).join(',');
+                  const rows = recommendationsFromWorksheet.map(r => cols.map(c => `"${String(r[c.id] || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+                  const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+                  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'recommendations_export.csv'; a.click();
+                }}
+              />
             )}
 
             {/* ── CHECKLISTS ── */}
@@ -1101,27 +1276,24 @@ const App = () => {
               const rankings = studyData.rankings || DEFAULT_RANKINGS;
               return (
                 <div className="flex flex-col h-full bg-slate-50">
-                  {/* Section header */}
                   <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
                     <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />
-                      Risk Matrix
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Risk Matrix
                     </h2>
-                    <select
-                      className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
-                      value={riskMatrixChannel}
-                      onChange={e => setRiskMatrixChannel(e.target.value)}>
+                    <select className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
+                      value={riskMatrixChannel} onChange={e => setRiskMatrixChannel(e.target.value)}>
                       {RISK_CHANNELS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
                     </select>
                   </div>
-                  {/* Toolbar */}
                   <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
                     <div className="flex items-center gap-1">
                       <ToolbarButton icon={<Copy size={18}/>} title="Copy" />
                       <ToolbarButton icon={<Scissors size={18}/>} title="Cut" />
                       <ToolbarButton icon={<Clipboard size={18}/>} title="Paste" />
                       <div className="h-6 w-px bg-slate-300 mx-2"/>
-                      <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                      <ToolbarButton icon={<Printer size={18}/>} onClick={() => handlePrintAction()} title="Print" />
+                      <div className="h-6 w-px bg-slate-300 mx-2"/>
+                      <ToolbarButton icon={<Download size={18} className="text-emerald-600"/>} onClick={exportFullStudyJSON} title="Export Full Study" />
                     </div>
                     <div className="ml-4 flex items-center gap-3">
                       {RISK_CHANNELS.map(ch => (
@@ -1137,29 +1309,18 @@ const App = () => {
                     <div className="bg-white border border-slate-300 shadow-md rounded-sm overflow-hidden w-fit">
                       <table className="border-collapse text-[11px]">
                         <thead>
-                          {/* Group header */}
                           <tr className="bg-[#004a7c] text-white">
                             <th className="border border-slate-300 p-3 w-28 text-center font-black text-[9px] uppercase tracking-widest" rowSpan={2}>
                               <div className="-rotate-90 whitespace-nowrap text-teal-300">Consequence</div>
                             </th>
-                            <th colSpan={5} className="border border-slate-300 p-2 text-center font-black text-[9px] text-teal-300 uppercase tracking-[0.3em]">
-                              Likelihood →
-                            </th>
-                            {/* legend col */}
-                            <th className="border border-slate-300 p-2 bg-slate-700 text-[8px] font-black uppercase tracking-widest text-slate-200 w-40 text-center">
-                              Risk Ranking
-                            </th>
+                            <th colSpan={5} className="border border-slate-300 p-2 text-center font-black text-[9px] text-teal-300 uppercase tracking-[0.3em]">Likelihood →</th>
+                            <th className="border border-slate-300 p-2 bg-slate-700 text-[8px] font-black uppercase tracking-widest text-slate-200 w-40 text-center">Risk Ranking</th>
                           </tr>
                           <tr className="bg-[#004a7c] text-white">
                             {LIK_COLS.map(l => (
-                              <th key={l} className="border border-slate-300 p-3 w-24 text-center font-black text-xs">
-                                {l}
-                              </th>
+                              <th key={l} className="border border-slate-300 p-3 w-24 text-center font-black text-xs">{l}</th>
                             ))}
-                            {/* ranking legend header spacer */}
-                            <td className="border border-slate-300 bg-slate-100 p-2 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                              Code / Color / Label
-                            </td>
+                            <td className="border border-slate-300 bg-slate-100 p-2 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Code / Color / Label</td>
                           </tr>
                         </thead>
                         <tbody>
@@ -1168,9 +1329,7 @@ const App = () => {
                             const rColor = GET_RISK_COLOR(parseInt(ranking.code) || 0, rankings);
                             return (
                               <tr key={cons} className="h-20">
-                                <td className="border border-slate-300 bg-[#004a7c] text-white text-center font-black text-xs p-2 w-28">
-                                  {cons}
-                                </td>
+                                <td className="border border-slate-300 bg-[#004a7c] text-white text-center font-black text-xs p-2 w-28">{cons}</td>
                                 {LIK_COLS.map(lik => {
                                   const val = matrix[`${lik}_${cons}`] || 0;
                                   const color = GET_RISK_COLOR(val, rankings);
@@ -1188,7 +1347,6 @@ const App = () => {
                                     </td>
                                   );
                                 })}
-                                {/* Risk ranking legend */}
                                 <td className="border border-slate-300 p-2 bg-slate-50 align-middle">
                                   <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-sm shrink-0" style={{ backgroundColor: rColor.bg, color: rColor.text }}>
@@ -1203,20 +1361,18 @@ const App = () => {
                               </tr>
                             );
                           })}
-                          {/* Likelihood footer label */}
                           <tr className="bg-slate-100 border-t-2 border-slate-400">
                             <td className="border border-slate-300 p-2 bg-[#004a7c] text-center text-[9px] font-black text-teal-300 uppercase tracking-widest">↓ Consequence</td>
                             {LIK_COLS.map(l => (
-                              <td key={l} className="border border-slate-300 p-2 text-center text-[9px] font-black text-slate-500 bg-[#004a7c] text-white">{l}</td>
+                              <td key={l} className="border border-slate-300 p-2 text-center text-[9px] font-black bg-[#004a7c] text-white">{l}</td>
                             ))}
                             <td className="border border-slate-300 bg-slate-200 p-2 text-[8px] text-slate-500 font-black text-center uppercase tracking-widest">Likelihood →</td>
                           </tr>
                         </tbody>
                       </table>
 
-                      {/* Legend note from reference */}
                       <div className="p-4 bg-slate-50 border-t border-slate-200">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Risk Level Reference (from Gharda HAZOP Format)</p>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Risk Level Reference</p>
                         <div className="flex items-center gap-4 flex-wrap">
                           {rankings.slice().reverse().map(r => {
                             const c = GET_RISK_COLOR(parseInt(r.code), rankings);
@@ -1240,13 +1396,13 @@ const App = () => {
             {activeTopTab === 'risk' && activeSideTab === 'likelihoods' && (
               <div className="flex flex-col h-full bg-slate-50">
                 <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
-                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Likelihood Categories
-                  </h2>
+                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3"><div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Likelihood Categories</h2>
                 </div>
                 <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
                   <div className="flex items-center gap-1">
-                    <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                    <ToolbarButton icon={<Printer size={18}/>} onClick={() => handlePrintAction()} title="Print" />
+                    <div className="h-6 w-px bg-slate-300 mx-2"/>
+                    <ToolbarButton icon={<Download size={18} className="text-emerald-600"/>} onClick={exportFullStudyJSON} title="Export Full Study" />
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto bg-[#c0c0c0]/10 p-4">
@@ -1262,11 +1418,11 @@ const App = () => {
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-200">
                         {[
-                          { code:'VL', rating:1, desc:'Very Low',  freq:'Once in two years or more',                  prob:'0–10%',   color:'#16a34a' },
-                          { code:'L',  rating:2, desc:'Low',       freq:'Once in a year / more than once in 2 years', prob:'10–30%',  color:'#fbbf24' },
-                          { code:'M',  rating:3, desc:'Medium',    freq:'Once in 6 months / more than once in a year',prob:'30–50%',  color:'#f97316' },
-                          { code:'H',  rating:4, desc:'High',      freq:'Once in a quarter / more than once in 6 months',prob:'50–80%',color:'#dc2626'},
-                          { code:'VH', rating:5, desc:'Very High', freq:'Once a month / more than once in a quarter', prob:'80–100%', color:'#7f1d1d' },
+                          { code:'VL', rating:1, desc:'Very Low',  freq:'Once in two years or more',                   prob:'0–10%',   color:'#16a34a' },
+                          { code:'L',  rating:2, desc:'Low',       freq:'Once in a year / more than once in 2 years',  prob:'10–30%',  color:'#fbbf24' },
+                          { code:'M',  rating:3, desc:'Medium',    freq:'Once in 6 months / more than once in a year', prob:'30–50%',  color:'#f97316' },
+                          { code:'H',  rating:4, desc:'High',      freq:'Once in a quarter / more than once in 6 months', prob:'50–80%', color:'#dc2626' },
+                          { code:'VH', rating:5, desc:'Very High', freq:'Once a month / more than once in a quarter',  prob:'80–100%', color:'#7f1d1d' },
                         ].map(r => (
                           <tr key={r.code} className="h-10 hover:bg-blue-50 transition-colors">
                             <td className="p-3 border border-slate-300 text-center">
@@ -1288,9 +1444,7 @@ const App = () => {
             {activeTopTab === 'risk' && activeSideTab === 'consequences' && (
               <div className="flex flex-col h-full bg-slate-50">
                 <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
-                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Consequence Categories
-                  </h2>
+                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3"><div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Consequence Categories</h2>
                   <select className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
                     value={riskMatrixChannel} onChange={e => setRiskMatrixChannel(e.target.value)}>
                     {RISK_CHANNELS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
@@ -1298,7 +1452,9 @@ const App = () => {
                 </div>
                 <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
                   <div className="flex items-center gap-1">
-                    <ToolbarButton icon={<Printer size={18}/>} title="Print" />
+                    <ToolbarButton icon={<Printer size={18}/>} onClick={() => handlePrintAction()} title="Print" />
+                    <div className="h-6 w-px bg-slate-300 mx-2"/>
+                    <ToolbarButton icon={<Download size={18} className="text-emerald-600"/>} onClick={exportFullStudyJSON} title="Export Full Study" />
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto bg-[#c0c0c0]/10 p-4">
@@ -1353,7 +1509,9 @@ const App = () => {
                             <td className="p-3 border border-slate-300 text-center align-middle">
                               <span className="inline-flex items-center justify-center w-10 h-7 rounded font-black text-xs text-white" style={{ backgroundColor: r.color }}>{r.code}</span>
                             </td>
-                            <td className="p-3 border border-slate-300 font-black text-slate-700 text-xs align-middle">{r.rating} — {r.code === 'VH' ? 'Very High' : r.code === 'H' ? 'High' : r.code === 'M' ? 'Medium' : r.code === 'L' ? 'Low' : 'Very Low'}</td>
+                            <td className="p-3 border border-slate-300 font-black text-slate-700 text-xs align-middle">
+                              {r.rating} — {r.code === 'VH' ? 'Very High' : r.code === 'H' ? 'High' : r.code === 'M' ? 'Medium' : r.code === 'L' ? 'Low' : 'Very Low'}
+                            </td>
                             <td className="p-3 border border-slate-300 text-xs text-slate-600 font-bold leading-relaxed">{r.factors[riskMatrixChannel] || r.factors.Safety}</td>
                           </tr>
                         ))}
@@ -1379,8 +1537,9 @@ const App = () => {
             {/* ── PHA WORKSHEET ── */}
             {activeTopTab === 'pha' && activeSideTab === 'sheet' && (
               <div className="min-w-max p-8 space-y-6">
+
                 {/* Toolbar */}
-                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border border-slate-300 rounded-sm shrink-0 shadow-sm z-10">
+                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border border-slate-300 rounded-sm shrink-0 shadow-sm z-10 no-print">
                   <div className="flex items-center gap-1">
                     <ToolbarButton icon={<PlusCircle size={18} className="text-[#004a7c]" />} onClick={() => addPhaRowAt(-1)} title="Add Row" />
                     <ToolbarButton icon={<Copy size={18} />} title="Copy" />
@@ -1391,7 +1550,11 @@ const App = () => {
                     <ToolbarButton icon={<ArrowUp size={18} />} title="Move Up" />
                     <ToolbarButton icon={<ArrowDown size={18} />} title="Move Down" />
                     <div className="h-6 w-px bg-slate-300 mx-2" />
-                    <ToolbarButton icon={<Printer size={18} />} title="Print" />
+                    {/* ✅ SPECIAL FEATURE ADD-ON: Print + PDF Download (from node-eq.js) */}
+                    <ToolbarButton icon={<Printer size={18} />} onClick={() => handlePrintAction()} title="Print Worksheet" />
+                    <ToolbarButton icon={<Download size={18} className="text-emerald-600" />} onClick={() => handleDownloadPDF()} title="Download PDF" />
+                    <div className="h-6 w-px bg-slate-300 mx-2" />
+                    <ToolbarButton icon={<Download size={18} className="text-blue-600" />} onClick={exportCSV} title="Export PHA as CSV" />
                     <div className="h-6 w-px bg-slate-300 mx-2" />
                     <div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded border border-slate-200 shadow-sm">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Focus Node:</span>
@@ -1414,7 +1577,7 @@ const App = () => {
                 {/* HAZOP Worksheet Card */}
                 <div className="bg-white rounded-sm shadow-2xl border border-slate-300 overflow-hidden flex flex-col">
                   {/* Editable Industrial Header */}
-                  <div className="p-8 border-b border-slate-200 bg-white">
+                  <div className="p-8 border-b border-slate-200 bg-white pha-header-block">
                     <table className="w-full border-collapse border border-slate-300 text-[10px] bg-white">
                       <tbody>
                         <tr className="h-12">
@@ -1448,23 +1611,44 @@ const App = () => {
                           <td className="border border-slate-300 p-0 font-black text-[#00B2B2]"><input className="w-full h-full p-2 font-black text-[#00B2B2] uppercase focus:bg-teal-50/30 transition-all outline-none" value={activeNode.description || ''} onChange={e => handleNodeHeaderUpdate('description', e.target.value)} /></td>
                           <td className="bg-slate-50 border border-slate-300 p-2"><div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-400"><span>Node Description :</span><input className="text-slate-800 font-bold bg-transparent border-none focus:outline-none text-right w-1/2" value={activeNode.description || ''} onChange={e => handleNodeHeaderUpdate('description', e.target.value)} /></div></td>
                         </tr>
+
+                        {/* ✅ UPDATED: Equipment Details from node-eq.js — reads from node.equipment[] array */}
                         <tr>
                           <td colSpan="3" className="p-0">
-                            <div className="grid grid-cols-5 divide-x divide-slate-300 border-t border-slate-300">
-                              {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="p-3 space-y-1 bg-white">
-                                  <p className="text-[7px] font-black text-teal-600 uppercase mb-2 border-b border-teal-50 pb-1">Equipment Details {i}</p>
-                                  <div className="grid grid-cols-2 gap-y-1 text-[7px] font-bold uppercase text-slate-400 items-center">
-                                    <span>Tag No:</span>        <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.tag || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('tag', e.target.value)} />
-                                    <span>Design Cond:</span>   <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.designConditions || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('designConditions', e.target.value)} />
-                                    <span>Capacity:</span>      <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.capacity || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('capacity', e.target.value)} />
-                                    <span>MOC:</span>           <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.moc || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('moc', e.target.value)} />
-                                    <span>Design Temp:</span>   <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.temp || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('temp', e.target.value)} />
-                                    <span>Design Pres:</span>   <input className="text-right text-slate-700 outline-none font-bold" value={i === 1 ? (activeNode.pres || '') : ''} onChange={e => i === 1 && handleNodeHeaderUpdate('pres', e.target.value)} />
-                                  </div>
+                            {(() => {
+                              const equipment = activeNode.equipment || [];
+                              const eqCols = studyData.equipmentColumns || DEFAULT_EQUIPMENT_COLS;
+                              // Show all equipment items, minimum 5 slots for layout consistency
+                              const slots = Math.max(5, equipment.length);
+                              const colCount = Math.min(slots, 7); // max 7 columns for readability
+                              return (
+                                <div className="grid divide-x divide-slate-300 border-t border-slate-300" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                                  {Array.from({ length: slots }).map((_, i) => {
+                                    const eq = equipment[i];
+                                    return (
+                                      <div key={`equip-slot-${i}`} className={`p-3 space-y-1 ${eq ? 'bg-white' : 'bg-slate-50/20'}`}>
+                                        <div className={`flex items-center justify-between text-[7px] font-black uppercase mb-2 border-b pb-1 ${eq ? 'text-teal-600 border-teal-100' : 'text-slate-300 border-slate-100'}`}>
+                                          <span>{eq ? `Equipment ${i + 1}` : `Slot ${i + 1}`}</span>
+                                          {eq && <span className="bg-teal-50 text-teal-600 px-1 rounded">{String(eq.tag || '')}</span>}
+                                        </div>
+                                        {eq ? (
+                                          <div className="grid grid-cols-2 gap-y-1 text-[7px] font-bold uppercase text-slate-400 items-center">
+                                            {eqCols.filter(c => c.id !== 'tag').map(c => (
+                                              <React.Fragment key={`eq-col-${c.id}`}>
+                                                <span className="truncate">{String(c.label)}:</span>
+                                                <span className="text-right text-slate-700 font-black truncate">{String(eq[c.id] || '—')}</span>
+                                              </React.Fragment>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="h-20 flex items-center justify-center italic text-[6px] text-slate-300 font-bold uppercase tracking-widest">Space provision</div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })()}
                           </td>
                         </tr>
                       </tbody>
@@ -1473,26 +1657,28 @@ const App = () => {
 
                   {/* Column group header row */}
                   <div className="flex flex-col bg-[#004a7c] text-white text-[9px] font-bold uppercase sticky top-0 z-30 shadow-xl border-b border-white/20">
-                    <div className="flex border-b border-white/10 h-8">
+                    <div className="flex border-b border-white/10 h-8 text-center items-center">
                       <div style={{ width: '50px' }}  className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '110px' }} className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '110px' }} className="shrink-0 border-r border-white/10" />
+                      <div style={{ width: '250px' }} className="shrink-0 border-r border-white/10" />
                       <div style={{ width: '280px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '320px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '440px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 tracking-widest">#Consequences</div>
+                      <div style={{ width: '360px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Consequences</div>
+                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Inherent Risk</div>
                       <div style={{ width: '280px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '170px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 tracking-widest">Risk Matrix</div>
-                      <div style={{ width: '320px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '170px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 tracking-widest">Residual Risk</div>
-                      <div style={{ width: '180px' }} className="shrink-0" />
+                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Mitigated Risk</div>
+                      <div style={{ width: '300px' }} className="shrink-0 border-r border-white/10" />
+                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Residual Risk</div>
+                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10" />
+                      <div style={{ width: '120px' }} className="shrink-0" />
                     </div>
                     <div className="flex items-center text-center">
                       {filteredVisibleCols.map(col => (
                         <div key={col.id} className="p-4 border-r border-white/10 flex items-center justify-center shrink-0 h-16 leading-tight" style={{ width: col.width }}>
-                          {col.labelAlt || col.label}
+                          {col.label}
                         </div>
                       ))}
                     </div>
@@ -1509,7 +1695,7 @@ const App = () => {
                           </div>
                         ))}
                         <button onClick={() => setConfirm({ open: true, rowId: row.id })}
-                          className="absolute left-[-45px] top-1/2 -translate-y-1/2 p-2 text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
+                          className="no-print absolute left-[-45px] top-1/2 -translate-y-1/2 p-2 text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1517,7 +1703,7 @@ const App = () => {
                   </div>
 
                   <button onClick={() => addPhaRowAt(-1)}
-                    className="py-12 bg-slate-50 flex items-center justify-center gap-4 text-slate-400 font-black text-[11px] uppercase tracking-[0.4em] hover:bg-white hover:text-[#00B2B2] border-t border-slate-200 transition-all cursor-pointer group">
+                    className="no-print py-12 bg-slate-50 flex items-center justify-center gap-4 text-slate-400 font-black text-[11px] uppercase tracking-[0.4em] hover:bg-white hover:text-[#00B2B2] border-t border-slate-200 transition-all cursor-pointer group">
                     <PlusCircle size={20} className="group-hover:scale-125 transition-transform" />
                     <span>Add Analysis Scenario for {activeNode.description || 'Current Node'}</span>
                   </button>
@@ -1547,7 +1733,74 @@ const App = () => {
         onCancel={() => setConfirm({ open: false, rowId: null })}
       />
 
-      {/* Column Manager */}
+      {/* ✅ EQUIPMENT MODAL (from node-eq.js) */}
+      {equipmentModal.open && (() => {
+        const equipNode = (studyData.nodes || []).find(n => n.id === equipmentModal.nodeId);
+        const eqCols = studyData.equipmentColumns || DEFAULT_EQUIPMENT_COLS;
+        return (
+          <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-8">
+            <div className="bg-white w-full max-w-6xl h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border border-slate-300">
+              <div className="bg-[#004a7c] px-10 py-6 flex items-center justify-between border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-4 text-white">
+                  <Boxes size={24} className="text-teal-400"/>
+                  <div>
+                    <h3 className="font-black uppercase text-sm tracking-widest">Node Equipment Manager</h3>
+                    <p className="text-[10px] font-bold text-teal-200">
+                      Node: <span className="text-white">{String(equipNode?.description || equipmentModal.nodeId)}</span>
+                      {' · '}
+                      <span className="text-teal-300">{(equipNode?.equipment || []).length} Equipment Item(s) Registered</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setShowColManager(true)} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-all border border-white/20">
+                    <Columns size={12}/> Configure Columns
+                  </button>
+                  <button onClick={() => setEquipmentModal({ open: false, nodeId: null })} className="p-3 hover:bg-white/10 rounded-full text-white transition-all"><X size={24}/></button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <IndustrialRegistryView
+                  title={`Equipment Registry — ${String(equipNode?.description || 'Node')}`}
+                  items={equipNode?.equipment || []}
+                  columns={eqCols}
+                  moduleKey="equipment"
+                  updateServer={(data) => {
+                    if (data.equipment !== undefined) {
+                      const updatedNodes = (studyData.nodes || []).map(n =>
+                        n.id === equipmentModal.nodeId ? { ...n, equipment: data.equipment } : n
+                      );
+                      updateServer({ nodes: updatedNodes });
+                    }
+                  }}
+                  setShowColManager={setShowColManager}
+                  onExportCSV={() => {
+                    const equipment = equipNode?.equipment || [];
+                    const headers = eqCols.map(c => c.label).join(',');
+                    const rows = equipment.map(eq => eqCols.map(c => `"${String(eq[c.id] || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${equipNode?.description || 'node'}_equipment_export.csv`;
+                    a.click();
+                  }}
+                />
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-teal-400"></div>
+                  Equipment details sync automatically to PHA Worksheet header
+                </div>
+                <button onClick={() => setEquipmentModal({ open: false, nodeId: null })} className="bg-slate-900 text-white px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:brightness-110 transition-all">Close & Sync Worksheet</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Column Manager Modal */}
       <ColManagerModal
         show={showColManager}
         onClose={() => setShowColManager(false)}
@@ -1555,6 +1808,7 @@ const App = () => {
         updateServer={updateServer}
         activeTopTab={activeTopTab}
         activeSideTab={activeSideTab}
+        equipmentModalOpen={equipmentModal.open}
         visibleCols={visibleCols}
         setVisibleCols={setVisibleCols}
       />
