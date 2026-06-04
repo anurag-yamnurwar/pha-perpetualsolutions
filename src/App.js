@@ -18,8 +18,8 @@ import {
 const PRINT_STYLES = `
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 6mm 8mm;
+    size: landscape;
+    margin: 6mm;
   }
   * { box-sizing: border-box; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 6px !important; }
