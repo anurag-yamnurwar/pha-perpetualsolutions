@@ -8,7 +8,7 @@ import {
   Columns, AlertTriangle, ChevronUp, ChevronDown, CopyPlus,
   FilePlus, FolderSync, LogOut, ArrowUp, ArrowDown,
   Settings, Check, FileUp, ClipboardCheck, Zap, Grid3X3,
-  Boxes, Calendar
+  Boxes, Calendar, CheckSquare, Bell, BarChart2, UserCheck, Info
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────
@@ -18,25 +18,40 @@ import {
 const PRINT_STYLES = `
 @media print {
   @page {
-    size: A3 landscape;
-    margin: 10mm 8mm;
+    size: A4 landscape;
+    margin: 6mm 8mm;
   }
-  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  * { box-sizing: border-box; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 6px !important; }
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   header, nav, aside { display: none !important; }
-  main { overflow: visible !important; }
+  main { overflow: visible !important; padding: 0 !important; margin: 0 !important; }
   .custom-scroll { overflow: visible !important; }
   .flex-1 { overflow: visible !important; }
-  .min-w-max { min-width: 100% !important; }
-  table { width: 100% !important; table-layout: fixed !important; font-size: 7px !important; }
-  th, td { padding: 2px 3px !important; font-size: 7px !important; }
+  .min-w-max { min-width: 0 !important; width: 100% !important; }
+  /* PHA Worksheet table: fit all columns in landscape A4 */
+  .pha-print-table { width: 100% !important; table-layout: fixed !important; font-size: 5.5px !important; border-collapse: collapse !important; }
+  .pha-print-table th, .pha-print-table td { padding: 1.5px 2px !important; font-size: 5.5px !important; word-wrap: break-word !important; white-space: normal !important; overflow: hidden !important; }
+  table { width: 100% !important; table-layout: fixed !important; font-size: 6px !important; border-collapse: collapse !important; }
+  th, td { padding: 1.5px 2px !important; font-size: 6px !important; word-wrap: break-word !important; white-space: normal !important; }
+  input, textarea, select { font-size: 6px !important; padding: 0 !important; border: none !important; background: transparent !important; resize: none !important; }
   .divide-y > div { break-inside: avoid; page-break-inside: avoid; }
   .overflow-hidden { overflow: visible !important; }
   .overflow-auto { overflow: visible !important; }
   .pha-header-block { display: block !important; }
   .sticky { position: relative !important; }
   [style*="background-color"] { -webkit-print-color-adjust: exact; }
+  /* Hide worksheet scroll wrappers, show all rows */
+  .pha-scroll-container { overflow: visible !important; height: auto !important; max-height: none !important; }
+  /* Compact header block */
+  .pha-header-table { font-size: 6px !important; }
+  .pha-header-table td, .pha-header-table th { padding: 1px 2px !important; font-size: 6px !important; }
+  /* Row groups */
+  .pha-deviation-group { break-inside: avoid; page-break-inside: avoid; }
+  /* Hide row add buttons, context menus */
+  button.no-print { display: none !important; }
+  .pha-col-groups { font-size: 5px !important; }
 }
 `;
 
@@ -76,7 +91,7 @@ const DEFAULT_NODE_COLS = [
 const DEFAULT_EQUIPMENT_COLS = [
   { id: 'tag',              label: 'TAG NO.',           width: 120 },
   { id: 'description',     label: 'EQUIPMENT NAME',    width: 180 },
-  { id: 'designConditions',label: 'DESIGN CONDITIONS', width: 150 },
+  { id: 'designConditions',label: 'OPERATION CONDITIONS', width: 150 },
   { id: 'capacity',        label: 'CAPACITY',           width: 100 },
   { id: 'moc',             label: 'MOC',                width: 100 },
   { id: 'temp',            label: 'DESIGN TEMP',        width: 100 },
@@ -157,9 +172,11 @@ const TOP_TABS = [
   { id: 'deviations', label: 'Deviations',       Icon: Layers         },
   { id: 'causes',     label: 'Causes Worksheet', Icon: Target         },
   { id: 'pha',        label: 'PHA Worksheets',   Icon: ClipboardList  },
+  { id: 'safeguards', label: 'Safeguards',        Icon: ShieldCheck    },
   { id: 'recs',       label: 'Recommendations',  Icon: ClipboardCheck },
   { id: 'checklists', label: 'Check Lists',      Icon: ListChecks     },
   { id: 'risk',       label: 'Risk Criteria',    Icon: Activity       },
+  { id: 'actions',    label: 'Action Tracking',  Icon: CheckSquare    },
 ];
 
 const SIDE_NAV = {
@@ -167,6 +184,7 @@ const SIDE_NAV = {
   nodes:      [{ id: 'list',      label: 'Node Registry',       Icon: Map          }, { id: 'pids',      label: 'P&ID Reference',        Icon: Archive      }],
   deviations: [{ id: 'list',      label: 'Deviations Registry', Icon: Layers       }],
   causes:     [{ id: 'list',      label: 'Causes Registry',     Icon: Target       }],
+  safeguards: [{ id: 'list',      label: 'Safeguards Registry', Icon: ShieldCheck  }],
   recs:       [{ id: 'list',      label: 'Action Items',        Icon: ClipboardCheck }],
   checklists: [{ id: 'list',      label: 'Checklist Registry',  Icon: ListChecks   }],
   pha:        [{ id: 'sheet',     label: 'Analysis Sheet',      Icon: ClipboardList }, { id: 'summary',   label: 'Risk Summary',          Icon: Activity     }],
@@ -175,6 +193,11 @@ const SIDE_NAV = {
     { id: 'likelihoods',  label: 'Likelihood Categories',   Icon: Activity     },
     { id: 'consequences', label: 'Consequence Categories',  Icon: AlertTriangle },
     { id: 'rankings',     label: 'Risk Rankings',           Icon: Zap          },
+  ],
+  actions: [
+    { id: 'dashboard',  label: 'Dashboard',          Icon: BarChart2    },
+    { id: 'tracker',    label: 'Action Register',    Icon: CheckSquare  },
+    { id: 'team',       label: 'Team Workload',      Icon: UserCheck    },
   ],
 };
 
@@ -376,13 +399,61 @@ function StudyModalForm({ onSubmit, onCancel }) {
 // PHA WORKSHEET CELL RENDERER
 // ─────────────────────────────────────────────
 
-const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
-  const base = 'w-full h-full border-transparent outline-none p-4 transition-all';
-  if (col.id === 'sr') return <div className="w-full text-center font-black text-slate-300 text-xs py-4 bg-slate-100/30">{rIdx + 1}</div>;
+// Arrow-key navigation helper: finds all focusable cells in the PHA worksheet
+const navigateCell = (e, rowIndex, colIndex, totalRows, totalCols) => {
+  const container = e.target.closest('.pha-worksheet-grid');
+  if (!container) return;
+  const cells = Array.from(container.querySelectorAll('[data-cell]'));
+  const currentKey = `${rowIndex}-${colIndex}`;
+  const currentIdx = cells.findIndex(c => c.dataset.cell === currentKey);
+  if (currentIdx === -1) return;
+  let nextIdx = -1;
+  if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
+    nextIdx = currentIdx + 1;
+    e.preventDefault();
+  } else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+    nextIdx = currentIdx - 1;
+    e.preventDefault();
+  } else if (e.key === 'ArrowDown') {
+    // Find next row, same column
+    const targetKey = `${rowIndex + 1}-${colIndex}`;
+    nextIdx = cells.findIndex(c => c.dataset.cell === targetKey);
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    const targetKey = `${rowIndex - 1}-${colIndex}`;
+    nextIdx = cells.findIndex(c => c.dataset.cell === targetKey);
+    e.preventDefault();
+  }
+  if (nextIdx >= 0 && nextIdx < cells.length) {
+    const el = cells[nextIdx].querySelector('input,textarea,select') || cells[nextIdx];
+    el.focus();
+    if (el.select) el.select();
+  }
+};
+
+const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate, colIndex = 0) => {
+  const base = 'w-full h-full border-transparent outline-none p-2 transition-all';
+  const navProps = (e) => navigateCell(e, rIdx, colIndex, 9999, 9999);
+
+  if (col.id === 'sr') return (
+    <div data-cell={`${rIdx}-${colIndex}`} className="w-full text-center font-black text-slate-300 text-xs py-2 bg-slate-100/30 leading-tight">{rIdx + 1}</div>
+  );
 
   if (col.isAuto && col.id === 'dev') {
     const gen = `${row.gword || ''} ${row.param || ''} of ${row.mat || ''} from ${row.from || ''} to ${row.to || ''}`.trim().replace(/\s+/g, ' ');
-    return <textarea className={`${base} bg-transparent text-[11px] font-bold text-slate-800 focus:bg-white resize-none h-full`} value={row[col.id] || gen} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)} />;
+    return (
+      <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full">
+        <textarea
+          className={`${base} bg-transparent text-[11px] font-bold text-slate-800 focus:bg-white resize-none w-full min-h-[60px]`}
+          style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', overflowY: 'hidden' }}
+          value={row[col.id] || gen}
+          onChange={e => { handleCellUpdate(row.id, col.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+          onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+          onKeyDown={e => { if(e.key==='ArrowUp'||e.key==='ArrowDown') navProps(e); }}
+          rows={2}
+        />
+      </div>
+    );
   }
 
   if (col.isRegistryLink) {
@@ -390,8 +461,13 @@ const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
     const registryField = registryMap[col.id];
     const uniqueValues = Array.from(new Set((studyData.deviations || []).map(d => d[registryField]).filter(v => !!v)));
     return (
-      <div className="w-full h-full flex items-center px-1">
-        <select className="w-full h-10 bg-transparent font-bold text-xs text-[#004a7c] outline-none cursor-pointer appearance-none px-2" value={row[col.id] || ''} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)}>
+      <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full flex items-start px-1 pt-2">
+        <select
+          className="w-full bg-transparent font-bold text-xs text-[#004a7c] outline-none cursor-pointer appearance-none px-2 py-1 leading-snug"
+          style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+          value={row[col.id] || ''}
+          onChange={e => handleCellUpdate(row.id, col.id, e.target.value)}
+          onKeyDown={navProps}>
           <option value="">-</option>
           {uniqueValues.map((v, i) => <option key={`${v}-${i}`} value={v}>{v}</option>)}
         </select>
@@ -400,27 +476,88 @@ const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
   }
 
   if (col.isBullet) return (
-    <textarea className={`${base} min-h-[100px] bg-transparent text-[11px] leading-relaxed focus:bg-white resize-none font-medium text-slate-600`}
-      value={String(row[col.id] || '')}
-      onChange={e => handleCellUpdate(row.id, col.id, e.target.value)}
-      onKeyDown={e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          const val = e.target.value;
-          const lines = val.split('\n').filter(l => l.trim() !== '');
-          const lastLine = lines[lines.length - 1] || '0.';
-          const nextNum = (parseInt((lastLine.match(/\d+/) || ['0'])[0]) || 0) + 1;
-          handleCellUpdate(row.id, col.id, val + (val.endsWith('\n') ? '' : '\n') + nextNum + '. ');
-        }
-      }}
-    />
+    <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full">
+      <textarea
+        className={`${base} min-h-[80px] bg-transparent text-[11px] leading-relaxed focus:bg-white resize-none font-medium text-slate-600 w-full`}
+        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', overflowY: 'hidden' }}
+        value={String(row[col.id] || '')}
+        onChange={e => { handleCellUpdate(row.id, col.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+        onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const val = e.target.value;
+            const lines = val.split('\n').filter(l => l.trim() !== '');
+            const lastLine = lines[lines.length - 1] || '0.';
+            const nextNum = (parseInt((lastLine.match(/\d+/) || ['0'])[0]) || 0) + 1;
+            handleCellUpdate(row.id, col.id, val + (val.endsWith('\n') ? '' : '\n') + nextNum + '. ');
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            navProps(e);
+          }
+        }}
+        rows={3}
+      />
+    </div>
   );
 
+  // Safeguards: linked to studyData.safeguards — show multi-select checkboxes plus free text
+  if (col.id === 'safeguards') {
+    return (
+      <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full">
+        <textarea
+          className={`${base} min-h-[80px] bg-transparent text-[11px] leading-relaxed focus:bg-white resize-none font-medium text-slate-600 w-full`}
+          style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', overflowY: 'hidden' }}
+          value={String(row[col.id] || '')}
+          placeholder={
+            (studyData.safeguards || []).length > 0
+              ? (studyData.safeguards || []).slice(0, 3).map((s, i) => `${i+1}. ${String(s.safeguard||s.description||'')}`.trim()).filter(Boolean).join('\n') + '\n(type or pick from safeguards)'
+              : '1. Enter safeguard...'
+          }
+          onChange={e => { handleCellUpdate(row.id, col.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+          onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              const val = e.target.value;
+              const lines = val.split('\n').filter(l => l.trim() !== '');
+              const lastLine = lines[lines.length - 1] || '0.';
+              const nextNum = (parseInt((lastLine.match(/\d+/) || ['0'])[0]) || 0) + 1;
+              handleCellUpdate(row.id, col.id, val + (val.endsWith('\n') ? '' : '\n') + nextNum + '. ');
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') navProps(e);
+          }}
+          rows={3}
+        />
+        {(studyData.safeguards || []).length > 0 && (
+          <div className="border-t border-slate-100 bg-slate-50/80 px-2 py-1 flex flex-wrap gap-1">
+            {(studyData.safeguards || []).slice(0, 8).map((sg, si) => {
+              const sgText = String(sg.safeguard || sg.description || sg.label || '');
+              if (!sgText) return null;
+              const alreadyIn = (row[col.id] || '').includes(sgText);
+              return (
+                <button key={sg.id || si}
+                  className={`text-[8px] px-1.5 py-0.5 rounded border font-bold transition-all cursor-pointer ${alreadyIn ? 'bg-teal-100 border-teal-400 text-teal-700' : 'bg-white border-slate-200 text-slate-500 hover:border-teal-300 hover:text-teal-600'}`}
+                  onClick={() => {
+                    if (alreadyIn) return;
+                    const val = row[col.id] || '';
+                    const lines = val.split('\n').filter(l => l.trim() !== '');
+                    const nextNum = lines.length + 1;
+                    handleCellUpdate(row.id, col.id, val + (val && !val.endsWith('\n') ? '\n' : '') + nextNum + '. ' + sgText);
+                  }}
+                  title={`Add: ${sgText}`}>{sgText.slice(0, 25)}{sgText.length > 25 ? '…' : ''}</button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (col.isRisk) return (
-    <div className="w-full h-full flex items-center justify-center px-1">
-      <select className="w-full h-10 bg-white/50 border border-transparent rounded-lg text-center font-black text-xs cursor-pointer appearance-none"
+    <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full flex items-center justify-center px-1">
+      <select className="w-full h-8 bg-white/50 border border-transparent rounded-lg text-center font-black text-xs cursor-pointer appearance-none"
         value={String(row[col.id] || '0')}
-        onChange={e => handleCellUpdate(row.id, col.id, parseInt(e.target.value))}>
+        onChange={e => handleCellUpdate(row.id, col.id, parseInt(e.target.value))}
+        onKeyDown={navProps}>
         <option value="0">-</option>
         {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}</option>)}
       </select>
@@ -434,19 +571,33 @@ const renderWorksheetCell = (col, row, rIdx, studyData, handleCellUpdate) => {
     else { s = row.resS; l = row.resL; }
     const score = (parseInt(s) || 0) * (parseInt(l) || 0);
     const style = GET_DYNAMIC_RISK_STYLE(score, []);
-    return <div className="w-full h-full flex items-center justify-center font-black text-xs shadow-inner" style={style}>{score || '-'}</div>;
+    return (
+      <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full flex items-center justify-center font-black text-xs shadow-inner" style={style}>{score || '-'}</div>
+    );
   }
 
   if (col.type === 'select') return (
-    <div className="w-full h-full flex items-center px-1">
-      <select className="w-full h-10 bg-transparent font-bold text-xs outline-none cursor-pointer px-2" value={row[col.id] || ''} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)}>
+    <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full flex items-start px-1 pt-2">
+      <select className="w-full bg-transparent font-bold text-xs outline-none cursor-pointer px-2 py-1" value={row[col.id] || ''} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)} onKeyDown={navProps}>
         <option value="">-</option>
         {(col.opts || []).map((o, i) => <option key={`${o}-${i}`} value={o}>{o}</option>)}
       </select>
     </div>
   );
 
-  return <input className={`${base} bg-transparent text-[11px] font-bold text-slate-800 focus:bg-white`} value={String(row[col.id] || '')} onChange={e => handleCellUpdate(row.id, col.id, e.target.value)} />;
+  return (
+    <div data-cell={`${rIdx}-${colIndex}`} className="w-full h-full">
+      <textarea
+        className={`${base} bg-transparent text-[11px] font-bold text-slate-800 focus:bg-white resize-none w-full min-h-[40px]`}
+        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', overflowY: 'hidden' }}
+        value={String(row[col.id] || '')}
+        onChange={e => { handleCellUpdate(row.id, col.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+        onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+        onKeyDown={e => { if(e.key==='ArrowUp'||e.key==='ArrowDown') navProps(e); }}
+        rows={1}
+      />
+    </div>
+  );
 };
 
 // ─────────────────────────────────────────────
@@ -478,7 +629,7 @@ const IndustrialRegistryView = ({
       const keyMap = {
         pids: 'pidsColumns', nodes: 'nodeColumns', deviations: 'deviationColumns',
         causes: 'causeColumns', recs: 'recColumns', checklists: 'checklistColumns',
-        rankings: 'rankingColumns', equipment: 'equipmentColumns',
+        rankings: 'rankingColumns', equipment: 'equipmentColumns', safeguards: 'safeguardsColumns',
       };
       const key = keyMap[moduleKey];
       if (key) updateServer({ [key]: newCols });
@@ -624,16 +775,16 @@ const IndustrialRegistryView = ({
               {items.map((node, idx) => (
                 <tr key={node.id}
                   onContextMenu={e => { e.preventDefault(); setContextMenu({ visible: true, x: e.pageX, y: e.pageY, rowId: node.id, index: idx }); }}
-                  className="hover:bg-blue-50 h-10 group transition-colors">
-                  <td className="p-2 border border-slate-300 bg-slate-100 text-center text-xs font-bold text-slate-500">{idx + 1}</td>
+                  className="hover:bg-blue-50 group transition-colors align-top">
+                  <td className="p-2 border border-slate-300 bg-slate-100 text-center text-xs font-bold text-slate-500 whitespace-nowrap align-middle">{idx + 1}</td>
                   {columns.map(col => (
-                    <td key={col.id} className={`p-0 border border-slate-300 ${col.isAuto ? 'bg-orange-50/30' : ''}`}>
+                    <td key={col.id} className={`p-0 border border-slate-300 align-top ${col.isAuto ? 'bg-orange-50/30' : ''}`}>
                       {col.type === 'color' ? (
                         <div className="flex justify-center items-center h-10">
                           <input type="color" className="w-7 h-7 rounded border-none p-0 cursor-pointer shadow-sm" value={node[col.id] || '#004a7c'} onChange={e => handleUpdate(node.id, col.id, e.target.value)} />
                         </div>
                       ) : col.type === 'file' ? (
-                        <div className="flex items-center gap-1.5 px-2 h-10 min-w-0">
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 min-w-0 flex-wrap">
                           <button
                             onClick={() => { setActiveFileRow(node.id); fileInputRef.current.click(); }}
                             title="Upload / Replace File"
@@ -665,12 +816,12 @@ const IndustrialRegistryView = ({
                           )}
                         </div>
                       ) : col.type === 'select' ? (
-                        <select className="w-full h-10 px-2 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)}>
+                        <select className="w-full px-2 py-1.5 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)}>
                           <option value="">-</option>
                           {(col.opts || []).map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                       ) : col.type === 'date' ? (
-                        <input type="date" className="w-full h-10 px-2 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)} />
+                        <input type="date" className="w-full px-2 py-1.5 text-xs font-bold outline-none bg-transparent focus:bg-white" value={node[col.id] || ''} onChange={e => handleUpdate(node.id, col.id, e.target.value)} />
                       ) : col.id === 'link' ? (
                         <div className="flex items-center h-10 px-1 gap-1 min-w-0">
                           <input
@@ -689,16 +840,19 @@ const IndustrialRegistryView = ({
                         </div>
                       ) : col.id === 'equipment_count' ? (
                         // Auto-computed equipment count badge
-                        <div className="w-full h-10 px-2 flex items-center justify-center">
+                        <div className="w-full px-2 py-2 flex items-center justify-center">
                           <span className="bg-[#004a7c] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
                             {(node.equipment || []).length}
                           </span>
                         </div>
                       ) : (
-                        <input readOnly={col.isAuto}
-                          className={`w-full h-10 px-2 text-xs outline-none bg-transparent focus:bg-white font-bold ${col.textColor || 'text-slate-800'} ${col.isAuto ? 'italic cursor-default' : ''}`}
+                        <textarea readOnly={col.isAuto}
+                          className={`w-full px-2 py-1.5 text-xs outline-none bg-transparent focus:bg-white font-bold resize-none ${col.textColor || 'text-slate-800'} ${col.isAuto ? 'italic cursor-default' : ''}`}
+                          style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', overflowY: 'hidden', minHeight: '36px' }}
                           value={String(node[col.id] || '')}
-                          onChange={e => handleUpdate(node.id, col.id, e.target.value)}
+                          rows={1}
+                          onChange={e => { if (!col.isAuto) { handleUpdate(node.id, col.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; } }}
+                          onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
                           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addRowAt(-1); } }}
                         />
                       )}
@@ -749,6 +903,7 @@ function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab,
     if (activeTopTab === 'nodes') return activeSideTab === 'pids' ? 'pidsColumns' : 'nodeColumns';
     if (activeTopTab === 'deviations') return 'deviationColumns';
     if (activeTopTab === 'causes') return 'causeColumns';
+    if (activeTopTab === 'safeguards') return 'safeguardsColumns';
     if (activeTopTab === 'recs') return 'recColumns';
     if (activeTopTab === 'checklists') return 'checklistColumns';
     if (activeTopTab === 'risk' && activeSideTab === 'rankings') return 'rankingColumns';
@@ -819,6 +974,585 @@ function ColManagerModal({ show, onClose, studyData, updateServer, activeTopTab,
 }
 
 // ─────────────────────────────────────────────
+// TEAM MEMBERS PANEL
+// ─────────────────────────────────────────────
+
+const TEAM_ROLES = ['Study Leader','Scribe','Process Engineer','Safety Engineer','Instrument Engineer','Electrical Engineer','Mechanical Engineer','Operations Lead','Maintenance Lead','Environmental Engineer','Project Manager','Facilitator','Subject Matter Expert','Observer','Reviewer'];
+const TEAM_DISCIPLINES = ['Chemical Engineering','Process Safety','Instrumentation & Controls','Electrical','Mechanical','Operations','Maintenance','Environmental','Management','IT & Digitalization','Admin & HR','External Consultant'];
+
+function TeamMembersPanel({ studyData, updateServer }) {
+  const members = studyData.teamMembers || [];
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ name:'', role:'', discipline:'', email:'', phone:'', company:'' });
+  const [showForm, setShowForm] = useState(false);
+  const [delId, setDelId] = useState(null);
+
+  const openAdd = () => { setForm({ name:'', role:'Study Leader', discipline:'Process Safety', email:'', phone:'', company:'' }); setEditId(null); setShowForm(true); };
+  const openEdit = (m) => { setForm({ ...m }); setEditId(m.id); setShowForm(true); };
+  const save = () => {
+    if (!form.name.trim()) return;
+    if (editId) {
+      updateServer({ teamMembers: members.map(m => m.id === editId ? { ...form, id: editId } : m) });
+    } else {
+      updateServer({ teamMembers: [...members, { ...form, id: Date.now().toString() }] });
+    }
+    setShowForm(false);
+  };
+  const del = (id) => { updateServer({ teamMembers: members.filter(m => m.id !== id) }); setDelId(null); };
+
+  const initials = (name) => name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avatarColor = (name) => { const colors=['#004a7c','#0d9488','#7c3aed','#b45309','#be123c','#0369a1','#15803d']; return colors[name.charCodeAt(0)%colors.length]; };
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50">
+      {/* Header */}
+      <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+          <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Team Members
+          <span className="ml-2 bg-[#004a7c] text-white text-[9px] font-black px-2 py-0.5 rounded-full">{members.length}</span>
+        </h2>
+        <button onClick={openAdd} className="flex items-center gap-2 bg-[#004a7c] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow">
+          <PlusCircle size={13}/> Add Member
+        </button>
+      </div>
+
+      {/* Info banner */}
+      <div className="bg-teal-50 border-b border-teal-200 px-6 py-2 flex items-center gap-2 text-[10px] font-black text-teal-700 uppercase tracking-widest shrink-0">
+        <Info size={11} className="text-teal-500"/> Team members added here are automatically available as owners in the Action Tracking system
+      </div>
+
+      {/* Members grid */}
+      <div className="flex-1 overflow-auto p-6">
+        {members.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-300 gap-4">
+            <Users size={48}/>
+            <p className="text-xs font-black uppercase tracking-widest">No team members yet</p>
+            <button onClick={openAdd} className="bg-[#004a7c] text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase hover:brightness-110 transition-all">Add First Member</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {members.map(m => (
+              <div key={m.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all group overflow-hidden">
+                <div className="h-2" style={{ background: avatarColor(m.name || 'A') }}/>
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shadow-sm shrink-0" style={{ background: avatarColor(m.name || 'A') }}>
+                        {initials(m.name || '?')}
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-800 leading-tight">{m.name}</p>
+                        <p className="text-[9px] font-bold text-teal-600 uppercase tracking-wider mt-0.5">{m.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={() => openEdit(m)} className="p-1.5 text-slate-400 hover:text-[#004a7c] hover:bg-blue-50 rounded-lg transition-all"><Settings size={12}/></button>
+                      <button onClick={() => setDelId(m.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={12}/></button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    {m.discipline && <div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"/>{m.discipline}</div>}
+                    {m.company && <div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"/>{m.company}</div>}
+                    {m.email && <div className="flex items-center gap-2 text-[10px] text-[#004a7c] font-semibold truncate"><span className="w-1.5 h-1.5 rounded-full bg-teal-300 shrink-0"/>{m.email}</div>}
+                    {m.phone && <div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"/>{m.phone}</div>}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Add card */}
+            <button onClick={openAdd} className="bg-white rounded-2xl border-2 border-dashed border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 transition-all flex flex-col items-center justify-center min-h-[160px] gap-2 text-slate-300 hover:text-teal-500">
+              <PlusCircle size={24}/>
+              <span className="text-[10px] font-black uppercase tracking-widest">Add Member</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200">
+            <div className="bg-[#004a7c] px-8 py-5 flex items-center justify-between">
+              <h3 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3"><Users size={16} className="text-teal-300"/>{editId ? 'Edit Member' : 'Add Team Member'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-white"><X size={16}/></button>
+            </div>
+            <div className="p-8 space-y-3">
+              {[['Full Name','name','text'],['Email','email','email'],['Phone','phone','text'],['Company / Organisation','company','text']].map(([lbl,key,type]) => (
+                <div key={key} className="flex items-center gap-4 border-b border-slate-50 pb-2">
+                  <label className="w-44 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">{lbl}</label>
+                  <input type={type} className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form[key]||''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))}/>
+                </div>
+              ))}
+              <div className="flex items-center gap-4 border-b border-slate-50 pb-2">
+                <label className="w-44 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</label>
+                <select className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form.role||''} onChange={e=>setForm(p=>({...p,role:e.target.value}))}>
+                  {TEAM_ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="w-44 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Discipline</label>
+                <select className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form.discipline||''} onChange={e=>setForm(p=>({...p,discipline:e.target.value}))}>
+                  {TEAM_DISCIPLINES.map(d=><option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button onClick={() => setShowForm(false)} className="px-6 py-2 rounded-xl border border-slate-300 text-xs font-black uppercase text-slate-500 hover:bg-white transition-all">Cancel</button>
+              <button onClick={save} className="px-10 py-2 bg-[#004a7c] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 shadow transition-all">Save Member</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmDialog isOpen={!!delId} title="Remove Member?" message="This team member will be removed from the study." onConfirm={() => del(delId)} onCancel={() => setDelId(null)}/>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// ACTION TRACKING SYSTEM
+// ─────────────────────────────────────────────
+
+function ActionTrackingSystem({ studyData, updateServer }) {
+  const members = studyData.teamMembers || [];
+  const recommendations = useMemo(() => {
+    const list = [];
+    (studyData.rows || []).forEach(row => {
+      const nodeIndex = (studyData.nodes || []).findIndex(n => n.id === row.nodeId) + 1;
+      const rowIndex = (studyData.rows || []).filter(r => r.nodeId === row.nodeId).findIndex(r => r.id === row.id) + 1;
+      if (row.recs && row.recs.trim()) {
+        row.recs.split('\n').filter(l => l.trim().length > 3).forEach((line, lIdx) => {
+          list.push({ ref: `N${nodeIndex||1}.${rowIndex}-R${lIdx+1}`, text: line.replace(/^\d+\.\s*/, '').trim(), nodeId: row.nodeId });
+        });
+      }
+    });
+    return list;
+  }, [studyData.rows, studyData.nodes]);
+
+  const actions = studyData.actionItems || [];
+  const [filter, setFilter] = useState({ owner: 'All', status: 'All', priority: 'All' });
+  const [showModal, setShowModal] = useState(false);
+  const [editAction, setEditAction] = useState(null);
+  const [delId, setDelId] = useState(null);
+  const [form, setForm] = useState({ title:'', description:'', owner:'', priority:'Medium', status:'Not Started', dueDate:'', recRef:'', category:'General' });
+  const [activeSub, setActiveSub] = useState('dashboard');
+
+  const openAdd = (prefill = {}) => {
+    setEditAction(null);
+    setForm({ title:'', description:'', owner: members[0]?.name||'', priority:'Medium', status:'Not Started', dueDate:'', recRef:'', category:'General', ...prefill });
+    setShowModal(true);
+  };
+  const openEdit = (a) => { setEditAction(a); setForm({ ...a }); setShowModal(true); };
+
+  const saveAction = () => {
+    if (!form.title.trim()) return;
+    if (editAction) {
+      updateServer({ actionItems: actions.map(a => a.id === editAction.id ? { ...form, id: editAction.id, createdAt: editAction.createdAt, updatedAt: new Date().toISOString() } : a) });
+    } else {
+      updateServer({ actionItems: [...actions, { ...form, id: Date.now().toString(), createdAt: new Date().toISOString() }] });
+    }
+    setShowModal(false);
+  };
+
+  const deleteAction = (id) => { updateServer({ actionItems: actions.filter(a => a.id !== id) }); setDelId(null); };
+
+  const toggleStatus = (id, newStatus) => updateServer({ actionItems: actions.map(a => a.id === id ? { ...a, status: newStatus } : a) });
+
+  const statusColor = (s) => ({ 'Completed':'bg-emerald-100 text-emerald-700','In Progress':'bg-blue-100 text-blue-700','Overdue':'bg-red-100 text-red-700','Not Started':'bg-slate-100 text-slate-600' }[s] || 'bg-slate-100 text-slate-600');
+  const priorityColor = (p) => ({ 'High':'text-red-600 bg-red-50 border-red-200','Medium':'text-amber-600 bg-amber-50 border-amber-200','Low':'text-green-600 bg-green-50 border-green-200' }[p] || '');
+
+  const filteredActions = actions.filter(a => {
+    if (filter.owner !== 'All' && a.owner !== filter.owner) return false;
+    if (filter.status !== 'All' && a.status !== filter.status) return false;
+    if (filter.priority !== 'All' && a.priority !== filter.priority) return false;
+    return true;
+  });
+
+  // KPIs
+  const total = actions.length;
+  const completed = actions.filter(a => a.status === 'Completed').length;
+  const overdue = actions.filter(a => a.status !== 'Completed' && a.dueDate && new Date(a.dueDate) < new Date()).length;
+  const inProgress = actions.filter(a => a.status === 'In Progress').length;
+  const rate = total ? Math.round((completed/total)*100) : 0;
+
+  // Workload per member
+  const workload = members.map(m => ({ ...m, count: actions.filter(a => a.owner === m.name).length, completed: actions.filter(a => a.owner === m.name && a.status === 'Completed').length, open: actions.filter(a => a.owner === m.name && a.status !== 'Completed').length }));
+
+  const initials = (name='') => name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avatarColor = (name='A') => { const colors=['#004a7c','#0d9488','#7c3aed','#b45309','#be123c','#0369a1','#15803d']; return colors[name.charCodeAt(0)%colors.length]; };
+
+  const subTabs = [{ id:'dashboard', label:'Dashboard', Icon:BarChart2 }, { id:'tracker', label:'Action Register', Icon:CheckSquare }, { id:'team', label:'Team Workload', Icon:UserCheck }];
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50">
+      {/* Section header */}
+      <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+          <div className="w-1.5 h-6 bg-[#004a7c] rounded-full"/>Action Tracking System
+          <span className="ml-2 bg-[#004a7c] text-white text-[9px] font-black px-2 py-0.5 rounded-full">{total} Actions</span>
+        </h2>
+        <button onClick={() => openAdd()} className="flex items-center gap-2 bg-[#004a7c] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow">
+          <PlusCircle size={13}/> New Action
+        </button>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="bg-white border-b border-slate-200 flex items-center px-4 shrink-0">
+        {subTabs.map(t => (
+          <button key={t.id} onClick={() => setActiveSub(t.id)}
+            className={`flex items-center gap-2 px-5 py-3 text-[11px] font-bold uppercase tracking-tight transition-all border-b-2 whitespace-nowrap ${activeSub === t.id ? 'border-[#004a7c] text-[#004a7c] bg-blue-50/40' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <t.Icon size={13}/> {t.label}
+          </button>
+        ))}
+        {recommendations.length > 0 && (
+          <div className="ml-auto flex items-center gap-2 text-[10px] font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200">
+            <Bell size={11}/> {recommendations.length} recommendations from worksheet
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {/* ── DASHBOARD ── */}
+        {activeSub === 'dashboard' && (
+          <div className="p-6 space-y-6 max-w-6xl">
+            {/* KPI row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label:'Total Actions', value:total, color:'#004a7c', Icon:CheckSquare },
+                { label:'Completion Rate', value:`${rate}%`, color:'#15803d', Icon:Activity },
+                { label:'In Progress', value:inProgress, color:'#0369a1', Icon:Clock },
+                { label:'Overdue', value:overdue, color:'#dc2626', Icon:AlertTriangle },
+              ].map(k => (
+                <div key={k.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4 hover:-translate-y-1 hover:shadow-md transition-all">
+                  <div className="p-3 rounded-xl shrink-0" style={{ background: k.color+'22' }}>
+                    <k.Icon size={18} style={{ color: k.color }}/>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-slate-800 leading-none">{k.value}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{k.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Recommendations from worksheet panel */}
+            {recommendations.length > 0 && (
+              <div className="bg-white rounded-2xl border border-teal-200 shadow-sm overflow-hidden">
+                <div className="bg-teal-600 px-6 py-3 flex items-center justify-between">
+                  <h4 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2"><Bell size={13}/>Recommendations from PHA Worksheet ({recommendations.length})</h4>
+                  <span className="text-teal-200 text-[9px] font-bold">Click to create action items</span>
+                </div>
+                <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                  {recommendations.map((rec, i) => {
+                    const alreadyAdded = actions.some(a => a.recRef === rec.ref);
+                    return (
+                      <div key={i} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors">
+                        <span className="text-[9px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded shrink-0">{rec.ref}</span>
+                        <span className="flex-1 text-xs text-slate-600 font-medium">{rec.text}</span>
+                        {alreadyAdded ? (
+                          <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 shrink-0 flex items-center gap-1"><CheckSquare size={10}/> Added</span>
+                        ) : (
+                          <button onClick={() => openAdd({ title: rec.text, recRef: rec.ref, category:'PHA Recommendation' })}
+                            className="text-[9px] font-black text-[#004a7c] bg-blue-50 hover:bg-[#004a7c] hover:text-white px-3 py-1.5 rounded-lg border border-blue-200 transition-all shrink-0">
+                            + Create Action
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Status breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-4">Status Breakdown</h4>
+                {[['Not Started','bg-slate-300',actions.filter(a=>a.status==='Not Started').length],['In Progress','bg-blue-500',inProgress],['Completed','bg-emerald-500',completed],['Overdue','bg-red-500',overdue]].map(([label,bg,count]) => (
+                  <div key={label} className="flex items-center gap-3 mb-3">
+                    <span className="text-[10px] font-black text-slate-500 w-24 text-right">{label}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+                      <div className={`h-3 rounded-full transition-all ${bg}`} style={{ width: total ? `${(count/total)*100}%` : '0%' }}/>
+                    </div>
+                    <span className="text-[11px] font-black text-slate-700 w-6">{count}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-4">Top Owners by Load</h4>
+                {workload.sort((a,b)=>b.count-a.count).slice(0,5).map(m => (
+                  <div key={m.id} className="flex items-center gap-3 mb-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black text-white shrink-0" style={{ background: avatarColor(m.name) }}>{initials(m.name)}</div>
+                    <span className="text-[10px] font-bold text-slate-600 flex-1 truncate">{m.name}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                      <div className="h-2.5 rounded-full bg-[#004a7c] transition-all" style={{ width: total ? `${(m.count/total)*100}%` : '0%' }}/>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-500 w-5">{m.count}</span>
+                  </div>
+                ))}
+                {members.length === 0 && <p className="text-[10px] text-slate-300 font-bold text-center py-4">Add team members in Study Data → Team Members</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── ACTION REGISTER ── */}
+        {activeSub === 'tracker' && (
+          <div className="flex flex-col h-full">
+            {/* Filters bar */}
+            <div className="bg-white border-b border-slate-200 px-5 py-2.5 flex items-center gap-4 shrink-0 flex-wrap">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
+              <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-bold outline-none focus:border-teal-400" value={filter.owner} onChange={e=>setFilter(p=>({...p,owner:e.target.value}))}>
+                <option value="All">All Owners</option>
+                {members.map(m=><option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+              <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-bold outline-none focus:border-teal-400" value={filter.status} onChange={e=>setFilter(p=>({...p,status:e.target.value}))}>
+                {['All','Not Started','In Progress','Completed','Overdue'].map(s=><option key={s}>{s}</option>)}
+              </select>
+              <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-bold outline-none focus:border-teal-400" value={filter.priority} onChange={e=>setFilter(p=>({...p,priority:e.target.value}))}>
+                {['All','High','Medium','Low'].map(s=><option key={s}>{s}</option>)}
+              </select>
+              <span className="text-[9px] font-black text-slate-400 ml-auto">{filteredActions.length} of {total}</span>
+              <button onClick={() => openAdd()} className="flex items-center gap-1.5 bg-[#004a7c] text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase hover:brightness-110 transition-all">
+                <PlusCircle size={12}/> Add Action
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="flex-1 overflow-auto bg-white">
+              <table className="w-full border-collapse text-[11px]" style={{tableLayout:'fixed'}}>
+                <colgroup>
+                  <col style={{width:'50px'}}/><col style={{width:'80px'}}/><col/><col style={{width:'150px'}}/><col style={{width:'100px'}}/><col style={{width:'120px'}}/><col style={{width:'110px'}}/><col style={{width:'110px'}}/><col style={{width:'80px'}}/>
+                </colgroup>
+                <thead className="sticky top-0 z-10">
+                  <tr style={{background:'#003566'}} className="text-white">
+                    {['#','Ref.','Action / Description','Owner','Priority','Status','Due Date','Category',''].map((h,i) => (
+                      <th key={i} className="border border-[#1e4f7c] px-2 py-2.5 text-[8px] font-black uppercase tracking-widest text-center">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredActions.length === 0 ? (
+                    <tr><td colSpan={9} className="py-20 text-center text-slate-300 text-[11px] font-black uppercase tracking-widest">No actions yet — click + Add Action to begin</td></tr>
+                  ) : filteredActions.map((a, idx) => (
+                    <tr key={a.id} className="group hover:bg-blue-50/40 border-b border-slate-100 align-top transition-colors">
+                      <td className="border-r border-slate-100 text-center py-2 text-[10px] font-bold text-slate-400 bg-slate-50">{idx+1}</td>
+                      <td className="border-r border-slate-100 px-2 py-2">
+                        {a.recRef ? <span className="text-[8px] font-black text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">{a.recRef}</span> : <span className="text-[9px] text-slate-300 italic">Manual</span>}
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2">
+                        <p className="text-[11px] font-semibold text-slate-800 leading-snug">{a.title}</p>
+                        {a.description && <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">{a.description}</p>}
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2">
+                        <div className="flex items-center gap-1.5">
+                          {a.owner && <div className="w-5 h-5 rounded flex items-center justify-center text-[7px] font-black text-white shrink-0" style={{ background: avatarColor(a.owner) }}>{initials(a.owner)}</div>}
+                          <span className="text-[10px] font-bold text-slate-700 truncate">{a.owner || '—'}</span>
+                        </div>
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2 text-center">
+                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${priorityColor(a.priority)}`}>{a.priority}</span>
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2">
+                        <select className="w-full bg-transparent text-[10px] font-bold outline-none cursor-pointer rounded" value={a.status} onChange={e=>toggleStatus(a.id,e.target.value)}>
+                          {['Not Started','In Progress','Completed','Overdue'].map(s=><option key={s}>{s}</option>)}
+                        </select>
+                        <span className={`inline-block mt-0.5 text-[7px] font-black px-1.5 py-0.5 rounded ${statusColor(a.status)}`}>{a.status}</span>
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2 text-center">
+                        {a.dueDate ? (
+                          <span className={`text-[9px] font-bold ${a.status !== 'Completed' && new Date(a.dueDate) < new Date() ? 'text-red-600 font-black' : 'text-slate-600'}`}>{new Date(a.dueDate).toLocaleDateString()}</span>
+                        ) : <span className="text-slate-300 text-[9px]">—</span>}
+                      </td>
+                      <td className="border-r border-slate-100 px-2 py-2 text-center">
+                        <span className="text-[9px] font-bold text-slate-500">{a.category||'General'}</span>
+                      </td>
+                      <td className="px-1 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button onClick={() => openEdit(a)} className="p-1 text-slate-400 hover:text-[#004a7c] hover:bg-blue-50 rounded transition-all"><Settings size={11}/></button>
+                          <button onClick={() => setDelId(a.id)} className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all"><Trash2 size={11}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── TEAM WORKLOAD ── */}
+        {activeSub === 'team' && (
+          <div className="p-6 max-w-5xl">
+            {members.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center shadow-sm">
+                <Users size={36} className="text-slate-300 mx-auto mb-3"/>
+                <p className="text-sm font-black text-slate-600 uppercase tracking-wide">No Team Members Defined</p>
+                <p className="text-xs text-slate-400 mt-2">Go to <span className="font-black text-[#004a7c]">Study Data → Team Members</span> to add your PHA team.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Team Action Workload</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {workload.map(m => (
+                    <div key={m.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:border-teal-300 transition-all">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white shadow-sm" style={{ background: avatarColor(m.name) }}>{initials(m.name)}</div>
+                          <div>
+                            <p className="text-sm font-black text-slate-800">{m.name}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{m.role} · {m.discipline}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-2xl font-black text-slate-800">{m.count}</span>
+                          <p className="text-[8px] font-black text-slate-400 uppercase">actions</p>
+                        </div>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mb-3">
+                        <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase mb-1">
+                          <span>Completion</span>
+                          <span>{m.count > 0 ? Math.round((m.completed/m.count)*100) : 0}%</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-2 bg-emerald-500 rounded-full transition-all" style={{ width: m.count > 0 ? `${(m.completed/m.count)*100}%` : '0%' }}/>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {[['Open',m.open,'bg-blue-100 text-blue-700'],['Done',m.completed,'bg-emerald-100 text-emerald-700']].map(([l,v,cls]) => (
+                          <span key={l} className={`flex-1 text-center text-[9px] font-black py-1 rounded-lg ${cls}`}>{l}: {v}</span>
+                        ))}
+                      </div>
+                      {/* Action list for this member */}
+                      {m.count > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 space-y-1 max-h-32 overflow-y-auto">
+                          {actions.filter(a=>a.owner===m.name).map(a=>(
+                            <div key={a.id} className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${a.status==='Completed'?'bg-emerald-400':a.status==='In Progress'?'bg-blue-400':a.status==='Overdue'?'bg-red-400':'bg-slate-300'}`}/>
+                              <span className="text-[9px] text-slate-600 font-medium flex-1 truncate">{a.title}</span>
+                              <span className={`text-[7px] font-black px-1.5 py-0.5 rounded ${statusColor(a.status)}`}>{a.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="bg-[#004a7c] px-8 py-5 flex items-center justify-between shrink-0">
+              <h3 className="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3"><CheckSquare size={16} className="text-teal-300"/>{editAction ? 'Edit Action' : 'New Action'}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-white"><X size={16}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-8 space-y-3">
+              <div className="flex items-center gap-4">
+                <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Action Title *</label>
+                <input className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form.title||''} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="Describe the action…"/>
+              </div>
+              <div className="flex items-start gap-4">
+                <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 mt-2">Details</label>
+                <textarea className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:border-teal-400 resize-none" rows={3} value={form.description||''} onChange={e=>setForm(p=>({...p,description:e.target.value}))} placeholder="Additional details…"/>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Owner</label>
+                <select className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form.owner||''} onChange={e=>setForm(p=>({...p,owner:e.target.value}))}>
+                  <option value="">— Select Owner —</option>
+                  {members.map(m=><option key={m.id} value={m.name}>{m.name} ({m.role})</option>)}
+                  <option value="Unassigned">Unassigned</option>
+                </select>
+              </div>
+              {[['Priority','priority',['High','Medium','Low']],['Status','status',['Not Started','In Progress','Completed','Overdue']],['Category','category',['PHA Recommendation','Safety','Engineering','Maintenance','Operational','Procedural','General']]].map(([label,key,opts]) => (
+                <div key={key} className="flex items-center gap-4">
+                  <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">{label}</label>
+                  <select className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form[key]||''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))}>
+                    {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
+              <div className="flex items-center gap-4">
+                <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Due Date</label>
+                <input type="date" className="flex-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-teal-400" value={form.dueDate||''} onChange={e=>setForm(p=>({...p,dueDate:e.target.value}))}/>
+              </div>
+              {form.recRef && (
+                <div className="flex items-center gap-4">
+                  <label className="w-40 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">PHA Ref.</label>
+                  <span className="text-xs font-black text-teal-600 bg-teal-50 px-3 py-1 rounded-lg border border-teal-200">{form.recRef}</span>
+                </div>
+              )}
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setShowModal(false)} className="px-6 py-2 rounded-xl border border-slate-300 text-xs font-black uppercase text-slate-500 hover:bg-white transition-all">Cancel</button>
+              <button onClick={saveAction} className="px-10 py-2 bg-[#004a7c] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 shadow transition-all">Save Action</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmDialog isOpen={!!delId} title="Delete Action?" message="This action item will be permanently removed." onConfirm={() => deleteAction(delId)} onCancel={() => setDelId(null)}/>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// PHA WORKSHEET — STABLE SUB-COMPONENTS
+// These MUST be defined at module level, outside App and outside the PHA
+// IIFE render function. If defined inside, React creates a new component
+// type on every render → unmounts/remounts on every keystroke → focus lost.
+// ─────────────────────────────────────────────
+
+const AutoTA = React.memo(({ value, onChange, onEnter, placeholder = '', className = '', minH = 28 }) => {
+  const ref = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(minH, el.scrollHeight) + 'px';
+  }, [value, minH]);
+  return (
+    <textarea ref={ref}
+      className={`w-full resize-none border-none outline-none bg-transparent leading-snug ${className}`}
+      style={{ minHeight: minH+'px', overflowY:'hidden', whiteSpace:'pre-wrap', wordBreak:'break-word', padding:'4px 6px' }}
+      value={value||''} rows={1} placeholder={placeholder}
+      onChange={e => { onChange && onChange(e.target.value); const el=ref.current; if(el){el.style.height='auto'; el.style.height=Math.max(minH,el.scrollHeight)+'px';} }}
+      onFocus={e => { const el=e.target; el.style.height='auto'; el.style.height=Math.max(minH,el.scrollHeight)+'px'; }}
+      onKeyDown={e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault(); onEnter&&onEnter();} }}
+    />
+  );
+});
+
+const RiskSel = React.memo(({ value, onChange }) => (
+  <select className="w-full h-full bg-transparent text-center font-black text-xs outline-none cursor-pointer"
+    value={String(value||0)} onChange={e => onChange(parseInt(e.target.value))}>
+    <option value="0">—</option>
+    {[1,2,3,4,5].map(v=><option key={v} value={v}>{v}</option>)}
+  </select>
+));
+
+const RiskBadge = React.memo(({ s, l, rankings }) => {
+  const sc = (parseInt(s)||0)*(parseInt(l)||0);
+  const rnk = rankings || DEFAULT_RANKINGS;
+  const { bg, text } = GET_RISK_COLOR(sc, rnk);
+  return (
+    <div className="w-full h-full flex items-center justify-center font-black text-xs"
+      style={{ background: bg, color: text, minHeight:'28px' }}>
+      {sc||'—'}
+    </div>
+  );
+});
+
+const LBadge = React.memo(({ label, bg }) => (
+  <span className="inline-flex items-center justify-center text-[7px] font-black rounded px-1 py-0.5 text-white shrink-0 mr-0.5 mt-0.5" style={{ background: bg, minWidth:'22px' }}>
+    {label}
+  </span>
+));
+
+// ─────────────────────────────────────────────
 // MAIN APP
 // ─────────────────────────────────────────────
 
@@ -834,6 +1568,7 @@ const App = () => {
   const [studyData, setStudyData] = useState({
     metadata: {}, rows: [], nodes: [], pids: [], deviations: [],
     checklists: [], recs: [], safeguards: [], parking: [], causes: [],
+    teamMembers: [], actionItems: [], documents: [],
     nodeColumns: DEFAULT_NODE_COLS,
     equipmentColumns: DEFAULT_EQUIPMENT_COLS,
     pidsColumns: DEFAULT_PID_COLS,
@@ -857,6 +1592,7 @@ const App = () => {
   const [visibleCols, setVisibleCols] = useState(PHA_COLUMN_DEFS.reduce((acc, col) => ({ ...acc, [col.id]: true }), {}));
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, rowId: null, index: -1 });
   const [confirm, setConfirm] = useState({ open: false, rowId: null });
+  const [selectedPhaRows, setSelectedPhaRows] = useState(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState('');
   // Equipment Modal state (from node-eq.js)
   const [equipmentModal, setEquipmentModal] = useState({ open: false, nodeId: null });
@@ -960,6 +1696,7 @@ const App = () => {
       rows: [],
       nodes: [{ id: 'n1', description: 'Node 01', intention: '', boundary: '', equipment: [{ id: 'e1', tag: 'V-101', description: 'Primary Feed Vessel', designConditions: '', capacity: '', moc: '', temp: '', pres: '' }] }],
       pids: [], deviations: [], checklists: [], recs: [], safeguards: [], parking: [], causes: [],
+      teamMembers: [], actionItems: [], documents: [],
       nodeColumns: DEFAULT_NODE_COLS,
       equipmentColumns: DEFAULT_EQUIPMENT_COLS,
       pidsColumns: DEFAULT_PID_COLS,
@@ -1190,6 +1927,25 @@ const App = () => {
               </div>
             )}
 
+            {/* ── STUDY DATA: TEAM MEMBERS ── */}
+            {activeTopTab === 'data' && activeSideTab === 'team' && (
+              <div className="h-full flex flex-col">
+                <TeamMembersPanel studyData={studyData} updateServer={updateServer}/>
+              </div>
+            )}
+
+            {/* ── STUDY DATA: DOCUMENTS placeholder ── */}
+            {activeTopTab === 'data' && activeSideTab === 'documents' && (
+              <IndustrialRegistryView title="Study Documents" items={studyData.documents || []} columns={studyData.pidsColumns || DEFAULT_PID_COLS} updateServer={(d) => { if(d.documents !== undefined) updateServer({documents:d.documents}); else updateServer(d); }} moduleKey="documents" setShowColManager={setShowColManager}/>
+            )}
+
+            {/* ── ACTION TRACKING ── */}
+            {activeTopTab === 'actions' && (
+              <div className="h-full flex flex-col">
+                <ActionTrackingSystem studyData={studyData} updateServer={updateServer}/>
+              </div>
+            )}
+
             {/* ── NODES: NODE REGISTRY (with Equipment Manager button per row) ── */}
             {activeTopTab === 'nodes' && activeSideTab === 'list' && (
               <div className="h-full relative flex flex-col">
@@ -1241,6 +1997,37 @@ const App = () => {
             {/* ── CAUSES ── */}
             {activeTopTab === 'causes' && activeSideTab === 'list' && (
               <IndustrialRegistryView title="Causes Registry" items={studyData.causes || []} columns={studyData.causeColumns || DEFAULT_CAUSE_COLS} updateServer={updateServer} moduleKey="causes" setShowColManager={setShowColManager} />
+            )}
+
+            {/* ── SAFEGUARDS — linked to PHA Worksheet safeguards column ── */}
+            {activeTopTab === 'safeguards' && activeSideTab === 'list' && (
+              <div className="flex flex-col h-full">
+                <IndustrialRegistryView
+                  title="Safeguards Registry (Linked to PHA Worksheet)"
+                  items={studyData.safeguards || []}
+                  columns={studyData.safeguardsColumns || [
+                    { id: 'safeguard',    label: 'SAFEGUARD DESCRIPTION',  width: 380 },
+                    { id: 'type',         label: 'TYPE / CATEGORY',         width: 160, type: 'select', opts: ['IPL','Administrative','Engineering','Procedural','Detection','Mitigation','Other'] },
+                    { id: 'ipl',          label: 'IPL',                     width: 80,  type: 'select', opts: ['Yes','No'] },
+                    { id: 'pfd',          label: 'PFD',                     width: 100 },
+                    { id: 'independent',  label: 'INDEPENDENT',             width: 120, type: 'select', opts: ['Yes','No'] },
+                    { id: 'auditable',    label: 'AUDITABLE',               width: 120, type: 'select', opts: ['Yes','No'] },
+                    { id: 'effective',    label: 'EFFECTIVE',               width: 120, type: 'select', opts: ['Yes','Partial','No'] },
+                    { id: 'reference',    label: 'REFERENCE',               width: 160 },
+                    { id: 'comments',     label: 'COMMENTS',                width: 220 },
+                  ]}
+                  updateServer={(data) => {
+                    if (data.safeguards !== undefined) updateServer({ safeguards: data.safeguards });
+                    else updateServer(data);
+                  }}
+                  moduleKey="safeguards"
+                  setShowColManager={setShowColManager}
+                />
+                <div className="no-print px-6 py-3 bg-teal-50 border-t border-teal-200 flex items-center gap-3 text-[10px] font-black text-teal-700 uppercase tracking-widest">
+                  <ShieldCheck size={14} className="text-teal-500" />
+                  Safeguards added here are automatically available as quick-pick options in the PHA Worksheet safeguards column.
+                </div>
+              </div>
             )}
 
             {/* ── RECOMMENDATIONS ── */}
@@ -1535,181 +2322,667 @@ const App = () => {
             )}
 
             {/* ── PHA WORKSHEET ── */}
-            {activeTopTab === 'pha' && activeSideTab === 'sheet' && (
-              <div className="min-w-max p-8 space-y-6">
+            {activeTopTab === 'pha' && activeSideTab === 'sheet' && (() => {
+              // ── HIERARCHICAL DATA MODEL ──────────────────────────────────────────────────
+              // Each "leaf" row in studyData.rows represents: Deviation → Cause → Consequence → Safeguard
+              // Fields:
+              //   devGrp    — shared key for rows with same deviation (guideword+param+mat+from+to)
+              //   causeGrp  — shared key for rows with same cause (within devGrp)
+              //   consGrp   — shared key for rows with same consequence (within causeGrp)
+              //   + per-leaf: safeguard, rawS/L, mitS/L, resS/L, recs, remarks, status
+              //
+              // Key columns kept: gword, param, mat, from, to (from Deviations registry)
+              // Deviation = auto-synthesized from those 5 fields
+              //
+              // ENTER KEY behaviour:
+              //   In guideword/param/mat/from/to/deviation → new Cause row under same devGrp
+              //   In Cause                                 → new sibling Cause (same devGrp, new causeGrp)
+              //   In consImm / consUlt                    → new sibling Consequence (same causeGrp, new consGrp)
+              //   In safeguard / risk / recs / remarks     → new sibling Safeguard (same consGrp)
 
+              const mkGrpId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+
+              const blankLeaf = (nodeId, overrides = {}) => ({
+                id: mkGrpId(), nodeId,
+                devGrp: mkGrpId(),
+                gword: '', param: '', mat: '', from: '', to: '', dev: '',
+                causeGrp: mkGrpId(), cause: '',
+                consGrp: mkGrpId(), consImm: '', consUlt: '',
+                safeguard: '',
+                rawS: 0, rawL: 0,
+                mitS: 0, mitL: 0,
+                resS: 0, resL: 0,
+                recs: '', remarks: '', status: 'Proposed',
+                ...overrides,
+              });
+
+              const allRows   = studyData.rows || [];
+              const nodeRows  = allRows.filter(r => r.nodeId === selectedNodeId);
+
+              // ── Hierarchical grouping ──────────────────────────────────────────────────
+              const buildHierarchy = (rows) => {
+                const devs = [];
+                rows.forEach(row => {
+                  let dg = devs.find(g => g.devGrp === row.devGrp);
+                  if (!dg) { dg = { devGrp: row.devGrp, rows: [], causeGroups: [] }; devs.push(dg); }
+                  dg.rows.push(row);
+                  let cg = dg.causeGroups.find(g => g.causeGrp === row.causeGrp);
+                  if (!cg) { cg = { causeGrp: row.causeGrp, rows: [], consGroups: [] }; dg.causeGroups.push(cg); }
+                  cg.rows.push(row);
+                  let cong = cg.consGroups.find(g => g.consGrp === row.consGrp);
+                  if (!cong) { cong = { consGrp: row.consGrp, rows: [] }; cg.consGroups.push(cong); }
+                  cong.rows.push(row);
+                });
+                return devs;
+              };
+
+              const hierarchy = buildHierarchy(nodeRows);
+
+              // ── Numbering map ──────────────────────────────────────────────────────────
+              const numMap = {};
+              hierarchy.forEach((dg, di) => {
+                dg.causeGroups.forEach((cg, ci) => {
+                  cg.consGroups.forEach((cong, congi) => {
+                    cong.rows.forEach((r, si) => {
+                      numMap[r.id] = {
+                        devLabel:   `${di+1}`,
+                        causeLabel: `${di+1}.${ci+1}`,
+                        consLabel:  `${di+1}.${ci+1}.${congi+1}`,
+                        safeLabel:  `${di+1}.${ci+1}.${congi+1}.${si+1}`,
+                      };
+                    });
+                  });
+                });
+              });
+
+              // ── Mutation helpers ───────────────────────────────────────────────────────
+              const commitRows = (fn) => updateServer({ rows: fn([...allRows]) });
+
+              const patchRow = (id, delta) =>
+                commitRows(all => all.map(r => r.id === id ? { ...r, ...delta } : r));
+
+              const patchDevGroup = (devGrp, delta) =>
+                commitRows(all => all.map(r => r.devGrp === devGrp && r.nodeId === selectedNodeId ? { ...r, ...delta } : r));
+
+              const patchCauseGroup = (causeGrp, delta) =>
+                commitRows(all => all.map(r => r.causeGrp === causeGrp ? { ...r, ...delta } : r));
+
+              const patchConsGroup = (consGrp, delta) =>
+                commitRows(all => all.map(r => r.consGrp === consGrp ? { ...r, ...delta } : r));
+
+              const insertAfter = (afterId, overrides = {}) => {
+                const leaf = blankLeaf(selectedNodeId, overrides);
+                commitRows(all => {
+                  const idx = afterId ? all.findIndex(x => x.id === afterId) : -1;
+                  const pos = idx === -1 ? all.length : idx + 1;
+                  const next = [...all]; next.splice(pos, 0, leaf);
+                  return next;
+                });
+                return leaf;
+              };
+
+              const lastOf = arr => arr[arr.length - 1];
+
+              // Add helpers
+              const addDeviation = (afterId) => insertAfter(afterId);
+              const addCause = (refRow, lastDevRow) => insertAfter(lastDevRow.id, { devGrp: refRow.devGrp, gword: refRow.gword, param: refRow.param, mat: refRow.mat, from: refRow.from, to: refRow.to, dev: refRow.dev });
+              const addConsequence = (refRow, lastCauseRow) => insertAfter(lastCauseRow.id, { devGrp: refRow.devGrp, gword: refRow.gword, param: refRow.param, mat: refRow.mat, from: refRow.from, to: refRow.to, dev: refRow.dev, causeGrp: refRow.causeGrp, cause: refRow.cause });
+              const addSafeguard = (refRow, lastConsRow) => insertAfter(lastConsRow.id, { devGrp: refRow.devGrp, gword: refRow.gword, param: refRow.param, mat: refRow.mat, from: refRow.from, to: refRow.to, dev: refRow.dev, causeGrp: refRow.causeGrp, cause: refRow.cause, consGrp: refRow.consGrp, consImm: refRow.consImm, consUlt: refRow.consUlt });
+              const deleteRow = (id) => commitRows(all => all.filter(r => r.id !== id));
+
+              // ── Auto-resize textarea helper ────────────────────────────────────────────
+              // AutoTA, RiskSel, RiskBadge, LBadge are defined at module level (stable —
+              // prevents React from unmounting/remounting on every render which causes focus loss).
+
+              // ── Column widths ──────────────────────────────────────────────────────────
+              const W = {
+                sr: 40, gword: 90, param: 90, mat: 110, locFrom: 95, locTo: 90, dev: 180,
+                cause: 190, cImm: 160, cUlt: 140, safe: 200,
+                rawS: 36, rawL: 36, rawR: 48,
+                mitS: 36, mitL: 36, mitR: 48,
+                resS: 36, resL: 36, resR: 48,
+                recs: 180, rem: 130, stat: 100, act: 30,
+              };
+              const TOTAL_W = Object.values(W).reduce((a,b)=>a+b,0);
+
+              // ── CSV export ─────────────────────────────────────────────────────────────
+              const exportHierarchicalCSV = () => {
+                const h = 'Sr,GuideWord,Parameter,Material,From,To,Deviation,Cause,Imm.Consequence,Ult.Consequence,Safeguard,S(Inh),L(Inh),IR,S(Mit),L(Mit),MR,S(Res),L(Res),RR,Recommendations,Remarks,Status';
+                const b = nodeRows.map(r => {
+                  const n = numMap[r.id]||{};
+                  const sc = (s,l)=>(parseInt(s)||0)*(parseInt(l)||0);
+                  return [n.safeLabel,r.gword,r.param,r.mat,r.from,r.to,r.dev||`${r.gword} ${r.param} of ${r.mat}`.trim(),r.cause,r.consImm,r.consUlt,r.safeguard,r.rawS,r.rawL,sc(r.rawS,r.rawL),r.mitS,r.mitL,sc(r.mitS,r.mitL),r.resS,r.resL,sc(r.resS,r.resL),r.recs,r.remarks,r.status]
+                    .map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',');
+                }).join('\n');
+                const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+'\n'+b],{type:'text/csv'})); a.download='pha_worksheet.csv'; a.click();
+              };
+
+              // ── Table renderer ─────────────────────────────────────────────────────────
+              const renderTableRows = () => {
+                if (!hierarchy.length) return (
+                  <tr><td colSpan={22} className="py-20 text-center text-slate-300 text-[11px] font-black uppercase tracking-widest">No scenarios yet — click "+ Add Deviation" to begin</td></tr>
+                );
+
+                return hierarchy.flatMap((dg, di) => {
+                  const devSpan = dg.rows.length;
+                  const lastDevRow = lastOf(dg.rows);
+                  const devEven = di%2===0;
+
+                  return dg.causeGroups.flatMap((cg, ci) => {
+                    const causeSpan = cg.rows.length;
+                    const lastCauseRow = lastOf(cg.rows);
+
+                    return cg.consGroups.flatMap((cong, congi) => {
+                      const consSpan = cong.rows.length;
+                      const lastConsRow = lastOf(cong.rows);
+
+                      return cong.rows.map((row, si) => {
+                        const isDevFirst   = ci===0 && congi===0 && si===0;
+                        const isCauseFirst = congi===0 && si===0;
+                        const isConsFirst  = si===0;
+                        const n = numMap[row.id]||{};
+                        const devBg = devEven ? '#eff6ff' : '#dbeafe';
+                        const devHdrBg = devEven ? '#dbeafe' : '#bfdbfe';
+                        const causeBg = ci%2===0 ? '#fffbeb' : '#fef9c3';
+                        const consBg  = congi%2===0 ? '#f0fdf4' : '#dcfce7';
+                        const safeBg  = si%2===0 ? '#f7fef7' : '#ecfdf5';
+
+                        const deviationAutoStr = `${row.gword||''} ${row.param||''} of ${row.mat||''} from ${row.from||''} to ${row.to||''}`.trim().replace(/\s+/g,' ');
+
+                        return (
+                          <tr key={row.id} className="group/leaf transition-colors hover:brightness-[0.97]"
+                            style={{ borderTop: isDevFirst && di>0 ? '3px solid #2563eb' : isCauseFirst && ci>0 ? '2px solid #d97706' : isConsFirst && congi>0 ? '1px dashed #10b981' : undefined }}>
+
+                            {/* SR — spans deviation */}
+                            {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 text-center align-top p-0" style={{ width:W.sr, background:devHdrBg, borderLeft:'3px solid #1d4ed8' }}>
+                                <div className="py-2 px-0.5 flex flex-col items-center gap-1">
+                                  <span className="font-black text-sm text-blue-800">{di+1}</span>
+                                  <button className="no-print text-[7px] font-black uppercase text-blue-400 hover:text-blue-700 hover:bg-blue-100 rounded px-1 py-0.5 transition-all leading-tight"
+                                    onClick={() => addCause(dg.rows[0], lastDevRow)}>+Cause</button>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* GUIDE WORD — spans deviation */}
+                            {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.gword, background:devBg }}>
+                                {(()=>{
+                                  const registryValues = Array.from(new Set((studyData.deviations||[]).map(d=>d.guideword).filter(Boolean)));
+                                  return (
+                                    <div className="p-1 h-full flex flex-col">
+                                      <select className="w-full bg-transparent text-[11px] font-bold text-blue-700 outline-none cursor-pointer px-1 py-1"
+                                        value={row.gword||''} onChange={e => patchDevGroup(dg.devGrp, { gword: e.target.value })}>
+                                        <option value="">—</option>
+                                        {registryValues.map(v=><option key={v} value={v}>{v}</option>)}
+                                        {!registryValues.includes(row.gword) && row.gword && <option value={row.gword}>{row.gword}</option>}
+                                      </select>
+                                      {!registryValues.length && (
+                                        <input className="w-full bg-transparent text-[11px] font-bold text-blue-700 outline-none px-1 py-1 focus:bg-blue-50/50" value={row.gword||''} placeholder="e.g. MORE"
+                                          onChange={e => patchDevGroup(dg.devGrp, { gword: e.target.value })} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCause(dg.rows[0],lastDevRow);}}}/>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            )}
+
+                            {/* PARAMETER — spans deviation */}
+                            {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.param, background:devBg }}>
+                                {(()=>{
+                                  const regVals = Array.from(new Set((studyData.deviations||[]).map(d=>d.parameter).filter(Boolean)));
+                                  return (
+                                    <div className="p-1 h-full flex flex-col">
+                                      <select className="w-full bg-transparent text-[11px] font-bold text-green-700 outline-none cursor-pointer px-1 py-1"
+                                        value={row.param||''} onChange={e => patchDevGroup(dg.devGrp, { param: e.target.value })}>
+                                        <option value="">—</option>
+                                        {regVals.map(v=><option key={v} value={v}>{v}</option>)}
+                                        {!regVals.includes(row.param) && row.param && <option value={row.param}>{row.param}</option>}
+                                      </select>
+                                      {!regVals.length && (
+                                        <input className="w-full bg-transparent text-[11px] font-bold text-green-700 outline-none px-1 py-1 focus:bg-green-50/50" value={row.param||''} placeholder="e.g. Flow"
+                                          onChange={e => patchDevGroup(dg.devGrp, { param: e.target.value })} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCause(dg.rows[0],lastDevRow);}}}/>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            )}
+
+                            {/* MATERIAL — spans deviation */}
+                            {/* {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.mat, background:devBg }}>
+                                <div className="p-1">
+                                  <AutoTA value={row.mat} placeholder="Material…"
+                                    onChange={v => patchDevGroup(dg.devGrp, { mat: v })}
+                                    onEnter={() => addCause(dg.rows[0], lastDevRow)}
+                                    className="text-[11px] font-semibold text-orange-700 focus:bg-orange-50/50" minH={28}/>
+                                </div>
+                              </td>
+                            )} */}
+                            {isDevFirst && (
+  <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.mat, background:devBg }}>
+    {(()=>{
+      const regVals = Array.from(new Set((studyData.deviations||[]).map(d=>d.material).filter(Boolean)));
+      return (
+        <div className="p-1 h-full flex flex-col">
+          <select className="w-full bg-transparent text-[11px] font-bold text-orange-700 outline-none cursor-pointer px-1 py-1"
+            value={row.mat||''} onChange={e => patchDevGroup(dg.devGrp, { mat: e.target.value })}>
+            <option value="">—</option>
+            {regVals.map(v=><option key={v} value={v}>{v}</option>)}
+            {!regVals.includes(row.mat) && row.mat && <option value={row.mat}>{row.mat}</option>}
+          </select>
+          {!regVals.length && (
+            <input className="w-full bg-transparent text-[11px] font-bold text-orange-700 outline-none px-1 py-1 focus:bg-orange-50/50"
+              value={row.mat||''} placeholder="e.g. Crude Oil"
+              onChange={e => patchDevGroup(dg.devGrp, { mat: e.target.value })}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCause(dg.rows[0],lastDevRow);}}}/>
+          )}
+        </div>
+      );
+    })()}
+  </td>
+)}
+
+                            {/* FROM — spans deviation */}
+                            {/* {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.locFrom, background:devBg }}>
+                                <div className="p-1">
+                                  <AutoTA value={row.from} placeholder="From…"
+                                    onChange={v => patchDevGroup(dg.devGrp, { from: v })}
+                                    onEnter={() => addCause(dg.rows[0], lastDevRow)}
+                                    className="text-[11px] font-semibold text-red-600 focus:bg-red-50/50" minH={28}/>
+                                </div>
+                              </td>
+                            )} */}
+                            {isDevFirst && (
+  <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.locFrom, background:devBg }}>
+    {(()=>{
+      const regVals = Array.from(new Set((studyData.deviations||[]).map(d=>d.locationFrom).filter(Boolean)));
+      return (
+        <div className="p-1 h-full flex flex-col">
+          <select className="w-full bg-transparent text-[11px] font-bold text-red-600 outline-none cursor-pointer px-1 py-1"
+            value={row.from||''} onChange={e => patchDevGroup(dg.devGrp, { from: e.target.value })}>
+            <option value="">—</option>
+            {regVals.map(v=><option key={v} value={v}>{v}</option>)}
+            {!regVals.includes(row.from) && row.from && <option value={row.from}>{row.from}</option>}
+          </select>
+          {!regVals.length && (
+            <input className="w-full bg-transparent text-[11px] font-bold text-red-600 outline-none px-1 py-1 focus:bg-red-50/50"
+              value={row.from||''} placeholder="e.g. Feed Tank"
+              onChange={e => patchDevGroup(dg.devGrp, { from: e.target.value })}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCause(dg.rows[0],lastDevRow);}}}/>
+          )}
+        </div>
+      );
+    })()}
+  </td>
+)}
+
+                            {/* TO — spans deviation */}
+                            {/* {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.locTo, background:devBg }}>
+                                <div className="p-1">
+                                  <AutoTA value={row.to} placeholder="To…"
+                                    onChange={v => patchDevGroup(dg.devGrp, { to: v })}
+                                    onEnter={() => addCause(dg.rows[0], lastDevRow)}
+                                    className="text-[11px] font-semibold text-purple-700 focus:bg-purple-50/50" minH={28}/>
+                                </div>
+                              </td>
+                            )} */}
+                            {isDevFirst && (
+  <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.locTo, background:devBg }}>
+    {(()=>{
+      const regVals = Array.from(new Set((studyData.deviations||[]).map(d=>d.locationTo).filter(Boolean)));
+      return (
+        <div className="p-1 h-full flex flex-col">
+          <select className="w-full bg-transparent text-[11px] font-bold text-purple-700 outline-none cursor-pointer px-1 py-1"
+            value={row.to||''} onChange={e => patchDevGroup(dg.devGrp, { to: e.target.value })}>
+            <option value="">—</option>
+            {regVals.map(v=><option key={v} value={v}>{v}</option>)}
+            {!regVals.includes(row.to) && row.to && <option value={row.to}>{row.to}</option>}
+          </select>
+          {!regVals.length && (
+            <input className="w-full bg-transparent text-[11px] font-bold text-purple-700 outline-none px-1 py-1 focus:bg-purple-50/50"
+              value={row.to||''} placeholder="e.g. Reactor"
+              onChange={e => patchDevGroup(dg.devGrp, { to: e.target.value })}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCause(dg.rows[0],lastDevRow);}}}/>
+          )}
+        </div>
+      );
+    })()}
+  </td>
+)}
+
+                            {/* DEVIATION (auto) — spans deviation */}
+                            {isDevFirst && (
+                              <td rowSpan={devSpan} className="border border-slate-200 align-top p-0" style={{ width:W.dev, background:devBg }}>
+                                <div className="p-1 flex flex-col h-full">
+                                  <div className="flex items-start gap-0.5">
+                                    <LBadge label={n.devLabel} bg="#1d4ed8"/>
+                                    <AutoTA value={row.dev||deviationAutoStr} placeholder="Deviation (auto-fills)…"
+                                      onChange={v => patchDevGroup(dg.devGrp, { dev: v })}
+                                      onEnter={() => addCause(dg.rows[0], lastDevRow)}
+                                      className="text-[11px] font-semibold text-slate-800 focus:bg-blue-50/50" minH={28}/>
+                                  </div>
+                                  <button className="no-print mt-auto text-[7px] font-black uppercase text-blue-400/60 hover:text-blue-600 hover:bg-blue-50 rounded px-1 py-0.5 transition-all"
+                                    onClick={() => addCause(dg.rows[0], lastDevRow)}>↵ Add Cause</button>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* CAUSE — spans causeGroup */}
+                            {isCauseFirst && (
+                              <td rowSpan={causeSpan} className="border border-slate-200 align-top p-0" style={{ width:W.cause, background:causeBg }}>
+                                <div className="p-1 flex flex-col h-full">
+                                  <div className="flex items-start gap-0.5 flex-1">
+                                    <LBadge label={n.causeLabel} bg="#b45309"/>
+                                    <AutoTA value={row.cause} placeholder="Enter cause… (↵ = new cause)"
+                                      onChange={v => patchCauseGroup(cg.causeGrp, { cause: v })}
+                                      onEnter={() => addCause(cg.rows[0], lastDevRow)}
+                                      className="text-[11px] font-semibold text-amber-800 focus:bg-amber-50/60" minH={28}/>
+                                  </div>
+                                  <button className="no-print mt-1 text-[7px] font-black uppercase text-amber-400/60 hover:text-amber-700 hover:bg-amber-50 rounded px-1 py-0.5 transition-all text-center"
+                                    onClick={() => addConsequence(cg.rows[0], lastCauseRow)}>↵ Add Consequence</button>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* IMMEDIATE CONSEQUENCE — spans consGroup */}
+                            {isConsFirst && (
+                              <td rowSpan={consSpan} className="border border-slate-200 align-top p-0" style={{ width:W.cImm, background:consBg }}>
+                                <div className="p-1 flex flex-col h-full">
+                                  <div className="flex items-start gap-0.5 flex-1">
+                                    <LBadge label={n.consLabel} bg="#0d9488"/>
+                                    <AutoTA value={row.consImm} placeholder="Immediate consequence… (↵ = new)"
+                                      onChange={v => patchConsGroup(cong.consGrp, { consImm: v })}
+                                      onEnter={() => addConsequence(cong.rows[0], lastCauseRow)}
+                                      className="text-[11px] font-semibold text-teal-800 focus:bg-teal-50/60" minH={28}/>
+                                  </div>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* ULTIMATE CONSEQUENCE — spans consGroup */}
+                            {isConsFirst && (
+                              <td rowSpan={consSpan} className="border border-slate-200 align-top p-0" style={{ width:W.cUlt, background:consBg }}>
+                                <div className="p-1 flex flex-col h-full">
+                                  <div className="flex items-start gap-0.5 flex-1">
+                                    <AutoTA value={row.consUlt} placeholder="Ultimate consequence…"
+                                      onChange={v => patchConsGroup(cong.consGrp, { consUlt: v })}
+                                      onEnter={() => addConsequence(cong.rows[0], lastCauseRow)}
+                                      className="text-[11px] font-semibold text-teal-800 focus:bg-teal-50/60" minH={28}/>
+                                  </div>
+                                  <button className="no-print mt-1 text-[7px] font-black uppercase text-teal-400/60 hover:text-teal-700 hover:bg-teal-50 rounded px-1 py-0.5 transition-all text-center"
+                                    onClick={() => addSafeguard(cong.rows[0], lastConsRow)}>↵ Add Safeguard</button>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* INHERENT RISK S, L, IR */}
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.rawS, background:'#fffbeb' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.rawS} onChange={v=>patchRow(row.id,{rawS:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.rawL, background:'#fffbeb' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.rawL} onChange={v=>patchRow(row.id,{rawL:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.rawR }}>
+                              <RiskBadge s={row.rawS} l={row.rawL} rankings={studyData.rankings}/>
+                            </td>
+
+                            {/* SAFEGUARD */}
+                            <td className="border border-slate-200 align-top p-0" style={{ width:W.safe, background:safeBg }}>
+                              <div className="p-1 flex flex-col">
+                                <div className="flex items-start gap-0.5">
+                                  <LBadge label={n.safeLabel} bg="#15803d"/>
+                                  <AutoTA value={row.safeguard} placeholder="Safeguard / IPL…"
+                                    onChange={v => patchRow(row.id, { safeguard: v })}
+                                    onEnter={() => addSafeguard(row, lastConsRow)}
+                                    className="text-[11px] font-semibold text-green-800 focus:bg-green-50/60" minH={28}/>
+                                </div>
+                                {(studyData.safeguards||[]).length>0 && si===0 && isConsFirst && (
+                                  <div className="no-print flex flex-wrap gap-0.5 mt-0.5 pt-0.5 border-t border-slate-100">
+                                    {(studyData.safeguards||[]).slice(0,4).map((sg,sgi)=>{
+                                      const t=String(sg.safeguard||sg.description||''); if(!t) return null;
+                                      return <button key={sgi} className="text-[7px] px-1 py-0.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:border-green-400 hover:text-green-600 transition-all" onClick={()=>patchRow(row.id,{safeguard:(row.safeguard?row.safeguard+'\n':'')+t})}>{t.slice(0,16)}{t.length>16?'…':''}</button>;
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* MITIGATED RISK S */}
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.mitS, background:'#fff7ed' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.mitS} onChange={v=>patchRow(row.id,{mitS:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.mitL, background:'#fff7ed' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.mitL} onChange={v=>patchRow(row.id,{mitL:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.mitR }}>
+                              <RiskBadge s={row.mitS} l={row.mitL} rankings={studyData.rankings}/>
+                            </td>
+
+                            {/* RESIDUAL RISK S */}
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.resS, background:'#fff1f2' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.resS} onChange={v=>patchRow(row.id,{resS:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.resL, background:'#fff1f2' }}>
+                              <div className="flex items-center justify-center h-full py-1"><RiskSel value={row.resL} onChange={v=>patchRow(row.id,{resL:v})}/></div>
+                            </td>
+                            <td className="border border-slate-200 p-0 align-middle" style={{ width:W.resR }}>
+                              <RiskBadge s={row.resS} l={row.resL} rankings={studyData.rankings}/>
+                            </td>
+
+                            {/* RECOMMENDATIONS */}
+                            <td className="border border-slate-200 align-top p-0" style={{ width:W.recs, background:'#faf5ff' }}>
+                              <AutoTA value={row.recs} placeholder="Recommendations… (↵ = new safeguard)"
+                                onChange={v=>patchRow(row.id,{recs:v})}
+                                onEnter={()=>addSafeguard(row,lastConsRow)}
+                                className="text-[11px] text-slate-600 focus:bg-purple-50/50" minH={28}/>
+                            </td>
+
+                            {/* REMARKS */}
+                            <td className="border border-slate-200 align-top p-0" style={{ width:W.rem }}>
+                              <AutoTA value={row.remarks} placeholder="Remarks…"
+                                onChange={v=>patchRow(row.id,{remarks:v})}
+                                onEnter={()=>addSafeguard(row,lastConsRow)}
+                                className="text-[11px] text-slate-600 focus:bg-slate-50" minH={28}/>
+                            </td>
+
+                            {/* STATUS */}
+                            <td className="border border-slate-200 align-middle p-0" style={{ width:W.stat }}>
+                              <select className="w-full bg-transparent text-[10px] font-bold outline-none cursor-pointer px-1 py-1"
+                                value={row.status||'Proposed'} onChange={e=>patchRow(row.id,{status:e.target.value})}>
+                                {['Proposed','Pending','Implemented','Closed','N/A'].map(o=><option key={o}>{o}</option>)}
+                              </select>
+                            </td>
+
+                            {/* DELETE */}
+                            <td className="border border-slate-200 text-center align-middle p-0 no-print" style={{ width:W.act }}>
+                              <button onClick={()=>setConfirm({open:true,rowId:row.id})} className="p-1 text-red-200 hover:text-red-500 opacity-0 group-hover/leaf:opacity-100 transition-all"><Trash2 size={11}/></button>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    });
+                  });
+                });
+              };
+
+              return (
+              <div className="flex flex-col h-full min-h-0">
                 {/* Toolbar */}
-                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border border-slate-300 rounded-sm shrink-0 shadow-sm z-10 no-print">
-                  <div className="flex items-center gap-1">
-                    <ToolbarButton icon={<PlusCircle size={18} className="text-[#004a7c]" />} onClick={() => addPhaRowAt(-1)} title="Add Row" />
-                    <ToolbarButton icon={<Copy size={18} />} title="Copy" />
-                    <ToolbarButton icon={<Scissors size={18} />} title="Cut" />
-                    <ToolbarButton icon={<Clipboard size={18} />} title="Paste" />
-                    <ToolbarButton icon={<Trash2 size={18} className="text-red-500" />} onClick={() => alert('Right-click a row to delete specifically.')} title="Delete" />
-                    <div className="h-6 w-px bg-slate-300 mx-2" />
-                    <ToolbarButton icon={<ArrowUp size={18} />} title="Move Up" />
-                    <ToolbarButton icon={<ArrowDown size={18} />} title="Move Down" />
-                    <div className="h-6 w-px bg-slate-300 mx-2" />
-                    {/* ✅ SPECIAL FEATURE ADD-ON: Print + PDF Download (from node-eq.js) */}
-                    <ToolbarButton icon={<Printer size={18} />} onClick={() => handlePrintAction()} title="Print Worksheet" />
-                    <ToolbarButton icon={<Download size={18} className="text-emerald-600" />} onClick={() => handleDownloadPDF()} title="Download PDF" />
-                    <div className="h-6 w-px bg-slate-300 mx-2" />
-                    <ToolbarButton icon={<Download size={18} className="text-blue-600" />} onClick={exportCSV} title="Export PHA as CSV" />
-                    <div className="h-6 w-px bg-slate-300 mx-2" />
-                    <div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded border border-slate-200 shadow-sm">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Focus Node:</span>
-                      <select className="bg-transparent text-[10px] font-black uppercase text-[#004a7c] outline-none cursor-pointer"
-                        value={selectedNodeId || ''}
-                        onChange={e => setSelectedNodeId(e.target.value)}>
-                        {(studyData.nodes || []).map(n => <option key={n.id} value={n.id}>{n.description || 'Untitled'}</option>)}
-                        {!studyData.nodes?.length && <option value="">No nodes defined</option>}
+                <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10 no-print">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <ToolbarButton icon={<><PlusCircle size={16} className="text-[#004a7c]"/><span className="text-[10px] ml-1 font-black">Add Deviation</span></>}
+                      onClick={() => addDeviation(lastOf(nodeRows)?.id||null)} title="Add new deviation row"/>
+                    <div className="h-5 w-px bg-slate-300 mx-1"/>
+                    <ToolbarButton icon={<Printer size={17}/>} onClick={()=>handlePrintAction()} title="Print"/>
+                    <ToolbarButton icon={<Download size={17} className="text-emerald-600"/>} onClick={()=>handleDownloadPDF()} title="PDF"/>
+                    <ToolbarButton icon={<Download size={17} className="text-blue-600"/>} onClick={exportHierarchicalCSV} title="Export CSV"/>
+                    <div className="h-5 w-px bg-slate-300 mx-1"/>
+                    <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
+                      <span className="text-[9px] font-black text-slate-400 uppercase">Node:</span>
+                      <select className="bg-transparent text-[10px] font-black text-[#004a7c] outline-none cursor-pointer"
+                        value={selectedNodeId||''} onChange={e=>setSelectedNodeId(e.target.value)}>
+                        {(studyData.nodes||[]).map(n=><option key={n.id} value={n.id}>{n.description||'Untitled'}</option>)}
+                        {!studyData.nodes?.length&&<option value="">No nodes</option>}
                       </select>
                     </div>
+                    <div className="h-5 w-px bg-slate-300 mx-1"/>
+                    <span className="text-[9px] font-black text-slate-400 bg-white border border-slate-200 px-2 py-1 rounded">{nodeRows.length} rows</span>
                   </div>
-                  <div className="ml-auto flex items-center gap-3">
-                    <button onClick={() => setShowColManager(true)}
-                      className="flex items-center gap-2 bg-white/80 px-4 py-1.5 rounded-xl border border-slate-300 text-[10px] font-black uppercase text-slate-600 hover:bg-[#004a7c] hover:text-white transition-all">
-                      <Settings size={12} /> Configure Worksheet
-                    </button>
+                  <div className="ml-auto no-print">
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+                      <Info size={10}/>
+                      <span>↵ Enter = add nested row &nbsp;|&nbsp; Shift+↵ = new line in cell &nbsp;|&nbsp; Labels: Deviation.Cause.Consequence.Safeguard</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* HAZOP Worksheet Card */}
-                <div className="bg-white rounded-sm shadow-2xl border border-slate-300 overflow-hidden flex flex-col">
-                  {/* Editable Industrial Header */}
-                  <div className="p-8 border-b border-slate-200 bg-white pha-header-block">
-                    <table className="w-full border-collapse border border-slate-300 text-[10px] bg-white">
+                {/* Scrollable area */}
+                <div className="flex-1 overflow-auto pha-scroll-container">
+
+                  {/* Study header */}
+                  <div className="bg-white border-b border-slate-200 p-3 pha-header-block">
+                    <table className="w-full border-collapse border border-slate-300 text-[10px] bg-white pha-header-table" style={{tableLayout:'fixed'}}>
+                      <colgroup><col style={{width:'130px'}}/><col/><col style={{width:'200px'}}/></colgroup>
                       <tbody>
-                        <tr className="h-12">
-                          <td className="border border-slate-300 p-2 w-[150px]"><div className="w-24 h-8 bg-slate-100 rounded" /></td>
-                          <td className="border border-slate-300 p-2 text-center text-xl font-black uppercase tracking-tighter text-[#004a7c]">HAZOP WORK SHEET</td>
-                          <td className="border border-slate-300 p-2 w-[220px]">
-                            <div className="grid grid-cols-2 gap-1 text-[8px] font-black uppercase text-slate-500">
-                              <span>Doc No:</span><span className="text-right">C/HSE/FR/006</span>
-                              <span>Date:</span><span className="text-right">{new Date().toLocaleDateString()}</span>
-                              <span>Rev No:</span><span className="text-right">01</span>
+                        <tr className="h-10">
+                          <td className="border border-slate-300 p-2"><div className="w-16 h-7 bg-slate-100 rounded flex items-center justify-center text-[6px] font-black text-slate-300 uppercase">LOGO</div></td>
+                          <td className="border border-slate-300 p-2 text-center font-black text-base uppercase tracking-tight" style={{color:'#004a7c'}}>HAZOP WORK SHEET</td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50">
+                            <div className="grid grid-cols-2 gap-y-0.5 text-[8px] font-bold text-slate-500">
+                              <span className="uppercase">Doc No:</span><span className="text-right font-black">C/HSE/FR/006</span>
+                              <span className="uppercase">Date:</span><span className="text-right font-black">{new Date().toLocaleDateString()}</span>
+                              <span className="uppercase">Rev:</span><span className="text-right font-black">01</span>
                             </div>
                           </td>
                         </tr>
                         <tr>
-                          <td className="bg-slate-50 border border-slate-300 p-2 font-black uppercase text-[8px] text-slate-400">Site / Location :</td>
-                          <td className="border border-slate-300 p-0"><input className="w-full h-full p-2 font-bold uppercase focus:bg-teal-50/30 transition-all outline-none" value={studyData.metadata?.facility || ''} onChange={e => handleStudyUpdate('facility', e.target.value)} /></td>
-                          <td className="bg-slate-50 border border-slate-300 p-2"><div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-400"><span>Plant / Section :</span><input className="text-slate-800 font-bold bg-transparent border-none focus:outline-none text-right w-1/2" value={studyData.metadata?.unit || ''} onChange={e => handleStudyUpdate('unit', e.target.value)} /></div></td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50 text-[8px] font-black uppercase text-slate-400">Site / Location</td>
+                          <td className="border border-slate-300 p-0"><input className="w-full p-1.5 text-[10px] font-bold focus:bg-blue-50 outline-none uppercase" value={studyData.metadata?.facility||''} onChange={e=>handleStudyUpdate('facility',e.target.value)}/></td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50 flex items-center justify-between text-[8px] font-black uppercase text-slate-400">
+                            <span>Plant/Unit:</span>
+                            <input className="text-[9px] font-bold bg-transparent outline-none text-right w-24 text-slate-700" value={studyData.metadata?.unit||''} onChange={e=>handleStudyUpdate('unit',e.target.value)}/>
+                          </td>
                         </tr>
                         <tr>
-                          <td className="bg-slate-50 border border-slate-300 p-2 font-black uppercase text-[8px] text-slate-400">Product :</td>
-                          <td className="border border-slate-300 p-0"><input className="w-full h-full p-2 font-bold focus:bg-teal-50/30 transition-all outline-none" value={studyData.metadata?.product || ''} onChange={e => handleStudyUpdate('product', e.target.value)} placeholder="Enter Product Name..." /></td>
-                          <td className="bg-slate-50 border border-slate-300 p-2"><div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-400"><span>Date of HAZOP :</span><span className="text-slate-800 font-bold">{new Date().toLocaleDateString()}</span></div></td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50 text-[8px] font-black uppercase text-slate-400">Node</td>
+                          <td className="border border-slate-300 p-0">
+                            <input className="w-full p-1.5 text-[10px] font-black focus:bg-blue-50 outline-none uppercase" style={{color:'#004a7c'}} value={activeNode.description||''} onChange={e=>handleNodeHeaderUpdate('description',e.target.value)}/>
+                          </td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50 text-[8px] font-black uppercase text-slate-400">Page: 1 of 1</td>
                         </tr>
                         <tr>
-                          <td className="bg-slate-50 border border-slate-300 p-2 font-black uppercase text-[8px] text-slate-400">Design Intention :</td>
-                          <td className="border border-slate-300 p-0 italic"><input className="w-full h-full p-2 focus:bg-teal-50/30 transition-all outline-none font-bold" value={activeNode.intention || ''} onChange={e => handleNodeHeaderUpdate('intention', e.target.value)} placeholder="Describe process intention..." /></td>
-                          <td className="bg-slate-50 border border-slate-300 p-2 font-black uppercase text-[8px] text-slate-400">Page : 1 of 1</td>
+                          <td className="border border-slate-300 p-1.5 bg-slate-50 text-[8px] font-black uppercase text-slate-400">Intention</td>
+                          <td className="border border-slate-300 p-0" colSpan={2}>
+                            <input className="w-full p-1.5 text-[10px] font-bold italic focus:bg-blue-50 outline-none" value={activeNode.intention||''} onChange={e=>handleNodeHeaderUpdate('intention',e.target.value)} placeholder="Design intention…"/>
+                          </td>
                         </tr>
-                        <tr>
-                          <td className="bg-slate-50 border border-slate-300 p-2 font-black uppercase text-[8px] text-slate-400">Node :</td>
-                          <td className="border border-slate-300 p-0 font-black text-[#00B2B2]"><input className="w-full h-full p-2 font-black text-[#00B2B2] uppercase focus:bg-teal-50/30 transition-all outline-none" value={activeNode.description || ''} onChange={e => handleNodeHeaderUpdate('description', e.target.value)} /></td>
-                          <td className="bg-slate-50 border border-slate-300 p-2"><div className="flex justify-between items-center text-[8px] font-black uppercase text-slate-400"><span>Node Description :</span><input className="text-slate-800 font-bold bg-transparent border-none focus:outline-none text-right w-1/2" value={activeNode.description || ''} onChange={e => handleNodeHeaderUpdate('description', e.target.value)} /></div></td>
-                        </tr>
-
-                        {/* ✅ UPDATED: Equipment Details from node-eq.js — reads from node.equipment[] array */}
-                        <tr>
-                          <td colSpan="3" className="p-0">
-                            {(() => {
-                              const equipment = activeNode.equipment || [];
-                              const eqCols = studyData.equipmentColumns || DEFAULT_EQUIPMENT_COLS;
-                              // Show all equipment items, minimum 5 slots for layout consistency
-                              const slots = Math.max(5, equipment.length);
-                              const colCount = Math.min(slots, 7); // max 7 columns for readability
-                              return (
-                                <div className="grid divide-x divide-slate-300 border-t border-slate-300" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
-                                  {Array.from({ length: slots }).map((_, i) => {
-                                    const eq = equipment[i];
+                        {(()=>{
+                          const eq=activeNode.equipment||[];
+                          const slots=Math.max(4,Math.min(eq.length||0,6));
+                          return (
+                            <tr>
+                              <td colSpan={3} className="p-0 border border-slate-300">
+                                <div className="grid divide-x divide-slate-200" style={{gridTemplateColumns:`repeat(${slots},1fr)`}}>
+                                  {Array.from({length:slots}).map((_,i)=>{
+                                    const e=eq[i];
                                     return (
-                                      <div key={`equip-slot-${i}`} className={`p-3 space-y-1 ${eq ? 'bg-white' : 'bg-slate-50/20'}`}>
-                                        <div className={`flex items-center justify-between text-[7px] font-black uppercase mb-2 border-b pb-1 ${eq ? 'text-teal-600 border-teal-100' : 'text-slate-300 border-slate-100'}`}>
-                                          <span>{eq ? `Equipment ${i + 1}` : `Slot ${i + 1}`}</span>
-                                          {eq && <span className="bg-teal-50 text-teal-600 px-1 rounded">{String(eq.tag || '')}</span>}
+                                      <div key={i} className={`p-1.5 ${e?'bg-white':'bg-slate-50/40'}`}>
+                                        <div className={`text-[7px] font-black uppercase border-b pb-0.5 mb-1 ${e?'text-teal-600 border-teal-100':'text-slate-200 border-slate-100'}`}>
+                                          {e?<><span className="bg-[#004a7c] text-white px-1 rounded mr-1">{e.tag||'—'}</span>{e.description||''}</>:`Slot ${i+1}`}
                                         </div>
-                                        {eq ? (
-                                          <div className="grid grid-cols-2 gap-y-1 text-[7px] font-bold uppercase text-slate-400 items-center">
-                                            {eqCols.filter(c => c.id !== 'tag').map(c => (
-                                              <React.Fragment key={`eq-col-${c.id}`}>
-                                                <span className="truncate">{String(c.label)}:</span>
-                                                <span className="text-right text-slate-700 font-black truncate">{String(eq[c.id] || '—')}</span>
-                                              </React.Fragment>
+                                        {e?(
+                                          <div className="grid grid-cols-2 gap-x-1 text-[7px] text-slate-400">
+                                            {[['Cap',e.capacity],['MOC',e.moc],['Temp',e.temp],['Pres',e.pres]].filter(([,v])=>v).map(([k,v])=>(
+                                              <React.Fragment key={k}><span className="font-black">{k}:</span><span className="truncate">{v}</span></React.Fragment>
                                             ))}
                                           </div>
-                                        ) : (
-                                          <div className="h-20 flex items-center justify-center italic text-[6px] text-slate-300 font-bold uppercase tracking-widest">Space provision</div>
-                                        )}
+                                        ):<div className="text-[6px] text-slate-200 italic uppercase tracking-widest">Space Provision</div>}
                                       </div>
                                     );
                                   })}
                                 </div>
-                              );
-                            })()}
-                          </td>
-                        </tr>
+                              </td>
+                            </tr>
+                          );
+                        })()}
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Column group header row */}
-                  <div className="flex flex-col bg-[#004a7c] text-white text-[9px] font-bold uppercase sticky top-0 z-30 shadow-xl border-b border-white/20">
-                    <div className="flex border-b border-white/10 h-8 text-center items-center">
-                      <div style={{ width: '50px' }}  className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '120px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '110px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '110px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '250px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '280px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '360px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Consequences</div>
-                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Inherent Risk</div>
-                      <div style={{ width: '280px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Mitigated Risk</div>
-                      <div style={{ width: '300px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10 flex items-center justify-center font-black text-teal-400 uppercase tracking-widest">Residual Risk</div>
-                      <div style={{ width: '150px' }} className="shrink-0 border-r border-white/10" />
-                      <div style={{ width: '120px' }} className="shrink-0" />
-                    </div>
-                    <div className="flex items-center text-center">
-                      {filteredVisibleCols.map(col => (
-                        <div key={col.id} className="p-4 border-r border-white/10 flex items-center justify-center shrink-0 h-16 leading-tight" style={{ width: col.width }}>
-                          {col.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* PHA Table */}
+                  <div style={{minWidth:TOTAL_W+'px', overflowX:'auto'}}>
+                    <table className="border-collapse pha-print-table" style={{width:TOTAL_W+'px', tableLayout:'fixed'}}>
+                      <colgroup>
+                        <col style={{width:W.sr}}/><col style={{width:W.gword}}/><col style={{width:W.param}}/>
+                        <col style={{width:W.mat}}/><col style={{width:W.locFrom}}/><col style={{width:W.locTo}}/>
+                        <col style={{width:W.dev}}/><col style={{width:W.cause}}/>
+                        <col style={{width:W.cImm}}/><col style={{width:W.cUlt}}/>
+                        <col style={{width:W.rawS}}/><col style={{width:W.rawL}}/><col style={{width:W.rawR}}/>
+                        <col style={{width:W.safe}}/>
+                        <col style={{width:W.mitS}}/><col style={{width:W.mitL}}/><col style={{width:W.mitR}}/>
+                        <col style={{width:W.resS}}/><col style={{width:W.resL}}/><col style={{width:W.resR}}/>
+                        <col style={{width:W.recs}}/><col style={{width:W.rem}}/><col style={{width:W.stat}}/>
+                        <col style={{width:W.act}} className="no-print"/>
+                      </colgroup>
+                      <thead className="sticky top-0 z-30">
+                        <tr style={{background:'#003566'}} className="text-white text-[8px] font-black uppercase tracking-wide">
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Sr.</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" style={{color:'#7dd3fc'}}>Guide Word</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" style={{color:'#7dd3fc'}}>Parameter</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" style={{color:'#7dd3fc'}}>Material</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" style={{color:'#7dd3fc'}}>From</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" style={{color:'#7dd3fc'}}>To</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Deviation</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Cause</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" colSpan={2} style={{color:'#6ee7b7'}}>Consequences</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" colSpan={3} style={{background:'#78350f',color:'#fde68a'}}>Inherent Risk</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Present / Planned Protection<br/><span className="font-normal normal-case text-[6px] opacity-70">(Safeguards / IPLs)</span></th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" colSpan={3} style={{background:'#9a3412',color:'#fed7aa'}}>Mitigated Risk</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" colSpan={3} style={{background:'#991b1b',color:'#fecaca'}}>Residual Risk</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Additional Protection<br/><span className="font-normal normal-case text-[6px] opacity-70">(Recommendations)</span></th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Remarks</th>
+                          <th className="border border-[#1e4f80] px-1 py-2 text-center" rowSpan={2}>Status</th>
+                          <th className="border border-[#1e4f80] no-print" rowSpan={2}/>
+                        </tr>
+                        <tr style={{background:'#012a4a'}} className="text-white text-[7px] font-black">
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#7dd3fc'}}>GW</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#7dd3fc'}}>Param</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#7dd3fc'}}>Material</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#7dd3fc'}}>From</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#7dd3fc'}}>To</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#6ee7b7'}}>Immediate</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{color:'#6ee7b7'}}>Ultimate</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#78350f',color:'#fde68a'}}>S</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#78350f',color:'#fde68a'}}>L</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#78350f',color:'#fde68a'}}>IR</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#9a3412',color:'#fed7aa'}}>S</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#9a3412',color:'#fed7aa'}}>L</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#9a3412',color:'#fed7aa'}}>MR</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#991b1b',color:'#fecaca'}}>S</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#991b1b',color:'#fecaca'}}>L</th>
+                          <th className="border border-[#1e4f80] px-1 py-1" style={{background:'#991b1b',color:'#fecaca'}}>RR</th>
+                        </tr>
+                      </thead>
+                      <tbody>{renderTableRows()}</tbody>
+                    </table>
 
-                  {/* Rows */}
-                  <div className="divide-y divide-slate-200">
-                    {nodeSpecificRows.map((row, rIdx) => (
-                      <div key={row.id} className="flex group hover:bg-teal-50/30 transition-colors relative"
-                        onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ visible: true, x: e.pageX, y: e.pageY, rowId: row.id, index: rIdx }); }}>
-                        {filteredVisibleCols.map(col => (
-                          <div key={col.id} className="border-r border-slate-100 shrink-0 flex items-center" style={{ width: col.width }}>
-                            {renderWorksheetCell(col, row, rIdx, studyData, handleCellUpdate)}
-                          </div>
-                        ))}
-                        <button onClick={() => setConfirm({ open: true, rowId: row.id })}
-                          className="no-print absolute left-[-45px] top-1/2 -translate-y-1/2 p-2 text-red-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                    {/* Add deviation footer */}
+                    <button onClick={() => addDeviation(lastOf(nodeRows)?.id||null)}
+                      className="no-print w-full py-10 bg-white hover:bg-blue-50 flex items-center justify-center gap-3 text-slate-400 font-black text-[11px] uppercase tracking-[0.3em] border-t border-slate-200 hover:text-[#004a7c] transition-all group">
+                      <PlusCircle size={16} className="group-hover:scale-125 transition-transform"/>
+                      Add Deviation / New Analysis Scenario for {activeNode.description||'Current Node'}
+                    </button>
                   </div>
-
-                  <button onClick={() => addPhaRowAt(-1)}
-                    className="no-print py-12 bg-slate-50 flex items-center justify-center gap-4 text-slate-400 font-black text-[11px] uppercase tracking-[0.4em] hover:bg-white hover:text-[#00B2B2] border-t border-slate-200 transition-all cursor-pointer group">
-                    <PlusCircle size={20} className="group-hover:scale-125 transition-transform" />
-                    <span>Add Analysis Scenario for {activeNode.description || 'Current Node'}</span>
-                  </button>
                 </div>
               </div>
-            )}
+              );
+            })()}
+
 
           </div>
         </main>
@@ -1717,12 +2990,54 @@ const App = () => {
 
       {/* PHA Row Context Menu */}
       {contextMenu.visible && activeTopTab === 'pha' && (
-        <div className="fixed z-[700] bg-white border border-slate-200 shadow-2xl rounded-2xl py-2 w-56" style={{ top: contextMenu.y, left: contextMenu.x }}>
+        <div className="fixed z-[700] bg-white border border-slate-200 shadow-2xl rounded-2xl py-2 w-64" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <ContextItem icon={<ChevronUp size={14} />}   label="Insert Scenario Above"  onClick={() => addPhaRowAt(contextMenu.index)} />
           <ContextItem icon={<ChevronDown size={14} />} label="Insert Scenario Below"  onClick={() => addPhaRowAt(contextMenu.index + 1)} />
           <ContextItem icon={<CopyPlus size={14} />}    label="Duplicate Scenario"     onClick={() => duplicatePhaRow(contextMenu.rowId)} />
           <div className="h-px bg-slate-100 my-1 mx-2" />
+          {/* Add cause row for same deviation */}
+          <ContextItem icon={<PlusCircle size={14} className="text-amber-500" />} label="Add Cause Row (Same Deviation)"
+            onClick={() => {
+              const baseRow = studyData.rows.find(r => r.id === contextMenu.rowId);
+              if (!baseRow) return;
+              const newRow = { ...baseRow, id: Date.now().toString(), causes: '1. ', consImm: '1. ', consUlt: '1. ', safeguards: '1. ', rawS: 0, rawL: 0, mitS: 0, mitL: 0, recs: '1. ', resS: 0, resL: 0, remarks: '', status: 'Proposed' };
+              const current = [...(studyData.rows || [])];
+              const idx2 = current.findIndex(r => r.id === contextMenu.rowId);
+              current.splice(idx2 + 1, 0, newRow);
+              updateServer({ rows: current });
+              setContextMenu(prev => ({ ...prev, visible: false }));
+            }} />
+          {/* Merge selected rows */}
+          {selectedPhaRows.size >= 2 && (
+            <ContextItem icon={<Layers size={14} className="text-blue-500" />} label={`Merge ${selectedPhaRows.size} Selected Rows`}
+              onClick={() => {
+                const ids = Array.from(selectedPhaRows);
+                const rowsToMerge = ids.map(id => studyData.rows.find(r => r.id === id)).filter(Boolean);
+                if (rowsToMerge.length < 2) return;
+                // Merge: keep first row's deviation fields, concatenate cause/consequence/safeguard/recs
+                const merged = { ...rowsToMerge[0] };
+                const concatField = (field, sep='\n') => rowsToMerge.map(r => String(r[field]||'')).filter(Boolean).join(sep);
+                merged.causes = concatField('causes');
+                merged.consImm = concatField('consImm');
+                merged.consUlt = concatField('consUlt');
+                merged.safeguards = concatField('safeguards');
+                merged.recs = concatField('recs');
+                merged.remarks = concatField('remarks', ' | ');
+                // Remove all merged rows, insert merged row in place of first
+                const remaining = studyData.rows.filter(r => !selectedPhaRows.has(r.id) || r.id === rowsToMerge[0].id);
+                const final = remaining.map(r => r.id === rowsToMerge[0].id ? merged : r);
+                updateServer({ rows: final });
+                setSelectedPhaRows(new Set());
+                setContextMenu(prev => ({ ...prev, visible: false }));
+              }} />
+          )}
+          {selectedPhaRows.size > 0 && (
+            <ContextItem icon={<X size={14} className="text-slate-400" />} label="Clear Selection"
+              onClick={() => { setSelectedPhaRows(new Set()); setContextMenu(prev => ({ ...prev, visible: false })); }} />
+          )}
+          <div className="h-px bg-slate-100 my-1 mx-2" />
           <ContextItem icon={<Trash2 size={14} className="text-red-400" />} label="Delete Selected Scenario" onClick={() => setConfirm({ open: true, rowId: contextMenu.rowId })} danger />
+          <div className="px-4 py-1.5 text-[9px] text-slate-400 font-bold">Ctrl+Click rows to multi-select</div>
         </div>
       )}
 
