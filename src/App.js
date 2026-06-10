@@ -2914,7 +2914,7 @@ const App = () => {
                     </table>
                   </div>
 
-                  {/* PHA Table */}
+                  {/* PHA Worksheet Table */}
                   <div style={{minWidth:TOTAL_W+'px', overflowX:'auto'}}>
                     <table className="border-collapse pha-print-table" style={{width:TOTAL_W+'px', tableLayout:'fixed'}}>
                       <colgroup>
