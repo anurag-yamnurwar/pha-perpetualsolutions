@@ -189,10 +189,15 @@ const SIDE_NAV = {
   checklists: [{ id: 'list',      label: 'Checklist Registry',  Icon: ListChecks   }],
   pha:        [{ id: 'sheet',     label: 'Analysis Sheet',      Icon: ClipboardList }, { id: 'summary',   label: 'Risk Summary',          Icon: Activity     }],
   risk:       [
-    { id: 'matrix',       label: 'Risk Matrix',             Icon: Grid3X3      },
-    { id: 'likelihoods',  label: 'Likelihood Categories',   Icon: Activity     },
-    { id: 'consequences', label: 'Consequence Categories',  Icon: AlertTriangle },
-    { id: 'rankings',     label: 'Risk Rankings',           Icon: Zap          },
+    { id: 'matrix',         label: 'Risk Matrix HAZOP',       Icon: Grid3X3      },
+    { id: 'likelihoods',    label: 'Likelihood',              Icon: Activity     },
+    { id: 'consequences',   label: 'Consequence Category',    Icon: AlertTriangle },
+    { id: 'severity',       label: 'Severity',                Icon: Zap          },
+    { id: 'rankings',       label: 'Risk Color',              Icon: Package      },
+    { id: 'globalcolor',    label: 'Global Color',            Icon: Bell         },
+    { id: 'plant',          label: 'Plant',                   Icon: Boxes        },
+    { id: 'node_risk',      label: 'Node',                    Icon: Map          },
+    { id: 'responsivity',   label: 'Responsivity By',         Icon: UserCheck    },
   ],
   actions: [
     { id: 'dashboard',  label: 'Dashboard',          Icon: BarChart2    },
@@ -207,25 +212,67 @@ const SIDE_NAV = {
 
 const RISK_CHANNELS = ['Safety', 'Environment', 'Assets', 'Community', 'Reputation'];
 
-const DEFAULT_MATRIX_VALUES = {
-  VH: { VL: 3, L: 3, M: 4, H: 4, VH: 5 },
-  H:  { VL: 2, L: 3, M: 3, H: 4, VH: 4 },
-  M:  { VL: 2, L: 2, M: 3, H: 3, VH: 4 },
-  L:  { VL: 1, L: 2, M: 2, H: 3, VH: 3 },
-  VL: { VL: 1, L: 1, M: 2, H: 2, VH: 3 },
+// Severity codes S0–S4 mapped to numeric values 0–4
+// Frequency codes F1–F5 mapped to numeric values 1–5
+// Risk = Severity × Frequency (matches the image: 5×5 matrix with values 1–25)
+const SEV_LABELS = [
+  { code: 'S0', label: 'Negligible', value: 0 },
+  { code: 'S1', label: 'Low',        value: 1 },
+  { code: 'S2', label: 'Medium',     value: 2 },
+  { code: 'S3', label: 'High',       value: 3 },
+  { code: 'S4', label: 'Catastrophic', value: 4 },
+];
+const FREQ_LABELS = [
+  { code: 'F1', label: 'LOW (1 in 100–1000 yrs)',         value: 1 },
+  { code: 'F2', label: 'OCCASIONAL (1 in 10–99 yrs)',     value: 2 },
+  { code: 'F3', label: 'HIGH (1 in 1–9 yrs)',             value: 3 },
+  { code: 'F4', label: 'VERY HIGH (<1/year)',              value: 4 },
+  { code: 'F5', label: 'EXTREMELY PROBABLE (once/month)', value: 5 },
+];
+
+// Matrix cell color thresholds matching the image exactly
+const getMatrixCellColor = (score) => {
+  if (score === 0) return '#ffffff';
+  if (score >= 15) return '#dc2626'; // Red
+  if (score >= 8)  return '#facc15'; // Yellow
+  if (score >= 5)  return '#facc15'; // Yellow (borderline)
+  return '#16a34a'; // Green
+};
+
+// More precise matching per image:
+// Green: 1,2,3,4 | Yellow: 5,6,8,9,10 | Red: 10+,12,15,16,20,25
+const getMatrixCellColorExact = (freq, sev) => {
+  const score = freq * sev;
+  if (score === 0) return '#f8fafc';
+  // Match image exactly
+  if (freq === 5 && sev === 1) return '#facc15'; // 5 - yellow
+  if (freq <= 4 && sev <= 1)   return '#16a34a'; // 1-4 green
+  if (freq === 1 && sev >= 1 && sev <= 4) return '#16a34a'; // col1 mostly green
+  if (score >= 10) return '#dc2626';
+  if (score >= 5)  return '#facc15';
+  return '#16a34a';
 };
 
 const buildDefaultRiskMatrix = () => {
   const matrix = {};
   RISK_CHANNELS.forEach(ch => {
     matrix[ch] = {};
-    ['VH','H','M','L','VL'].forEach(cons => {
-      ['VL','L','M','H','VH'].forEach(lik => {
-        matrix[ch][`${lik}_${cons}`] = DEFAULT_MATRIX_VALUES[cons][lik];
+    // freq rows F1-F5, sev cols S0-S4
+    FREQ_LABELS.forEach(f => {
+      SEV_LABELS.forEach(s => {
+        matrix[ch][`F${f.value}_S${s.value}`] = f.value * s.value;
       });
     });
   });
   return matrix;
+};
+
+const DEFAULT_MATRIX_VALUES = {
+  VH: { VL: 3, L: 3, M: 4, H: 4, VH: 5 },
+  H:  { VL: 2, L: 3, M: 3, H: 4, VH: 4 },
+  M:  { VL: 2, L: 2, M: 3, H: 3, VH: 4 },
+  L:  { VL: 1, L: 2, M: 2, H: 3, VH: 3 },
+  VL: { VL: 1, L: 1, M: 2, H: 2, VH: 3 },
 };
 
 const DEFAULT_RANKING_COLS = [
@@ -243,34 +290,50 @@ const DEFAULT_RANKINGS = [
   { id: 'r1', code: '1', description: 'Very Low — Acceptable risk',             color: '#16a34a', priority: '5' },
 ];
 
-const GET_DYNAMIC_RISK_STYLE = (score, rankings = []) => {
+// Global Risk Colors: map score ranges to colors (editable from UI)
+const DEFAULT_GLOBAL_COLORS = [
+  { id: 'gc1', range: '1–4',   label: 'Green / Acceptable',   color: '#16a34a', textColor: '#ffffff', minScore: 1,  maxScore: 4  },
+  { id: 'gc2', range: '5–9',   label: 'Yellow / Review',      color: '#facc15', textColor: '#7a4f00', minScore: 5,  maxScore: 9  },
+  { id: 'gc3', range: '10–14', label: 'Orange / Action',      color: '#f97316', textColor: '#ffffff', minScore: 10, maxScore: 14 },
+  { id: 'gc4', range: '15–25', label: 'Red / Unacceptable',   color: '#dc2626', textColor: '#ffffff', minScore: 15, maxScore: 25 },
+];
+
+// Severity levels (editable)
+const DEFAULT_SEVERITY_LEVELS = [
+  { id: 'sv0', code: 'S0', label: 'Negligible',    value: 0, color: '#94a3b8', description: 'No measurable impact' },
+  { id: 'sv1', code: 'S1', label: 'Low',           value: 1, color: '#16a34a', description: 'Minor injury / low financial loss' },
+  { id: 'sv2', code: 'S2', label: 'Medium',        value: 2, color: '#facc15', description: 'Medical treatment / moderate loss' },
+  { id: 'sv3', code: 'S3', label: 'High',          value: 3, color: '#f97316', description: 'Serious injury / major loss' },
+  { id: 'sv4', code: 'S4', label: 'Catastrophic',  value: 4, color: '#dc2626', description: 'Fatality / catastrophic loss' },
+];
+
+const GET_DYNAMIC_RISK_STYLE = (score, rankings = [], globalColors = DEFAULT_GLOBAL_COLORS) => {
   const s = parseInt(score) || 0;
   if (s === 0) return { backgroundColor: '#f1f5f9', color: '#94a3b8' };
-  const match = (rankings || []).find(r => parseInt(r.code) === s);
-  if (match) return { backgroundColor: match.color || '#fff', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.3)' };
-  if (s >= 16) return { backgroundColor: '#dc2626', color: '#fff' };
+  // Try global colors first
+  const gc = (globalColors || DEFAULT_GLOBAL_COLORS).find(g => s >= g.minScore && s <= g.maxScore);
+  if (gc) return { backgroundColor: gc.color, color: gc.textColor || '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.2)' };
+  if (s >= 15) return { backgroundColor: '#dc2626', color: '#fff' };
   if (s >= 10) return { backgroundColor: '#f97316', color: '#fff' };
-  if (s >= 5)  return { backgroundColor: '#fbbf24', color: '#92400e' };
-  return { backgroundColor: '#10b981', color: '#fff' };
+  if (s >= 5)  return { backgroundColor: '#facc15', color: '#7a4f00' };
+  return { backgroundColor: '#16a34a', color: '#fff' };
 };
 
-const GET_RISK_COLOR = (score, rankings = []) => {
+const GET_RISK_COLOR = (score, rankings = [], globalColors = DEFAULT_GLOBAL_COLORS) => {
   if (!score || score === 0) return { bg: '#f1f5f9', text: '#94a3b8' };
-  const match = rankings.find(r => parseInt(r.code) === parseInt(score));
-  if (match) return { bg: match.color || '#fff', text: '#fff' };
-  if (score >= 5)  return { bg: '#7f1d1d', text: '#fff' };
-  if (score >= 4)  return { bg: '#dc2626', text: '#fff' };
-  if (score >= 3)  return { bg: '#f97316', text: '#fff' };
-  if (score >= 2)  return { bg: '#fbbf24', text: '#92400e' };
+  const gc = (globalColors || DEFAULT_GLOBAL_COLORS).find(g => score >= g.minScore && score <= g.maxScore);
+  if (gc) return { bg: gc.color, text: gc.textColor || '#fff' };
+  if (score >= 15) return { bg: '#dc2626', text: '#fff' };
+  if (score >= 10) return { bg: '#f97316', text: '#fff' };
+  if (score >= 5)  return { bg: '#facc15', text: '#7a4f00' };
   return { bg: '#16a34a', text: '#fff' };
 };
 
 const RISK_STYLE = (val) => {
   if (!val || val === 0) return 'bg-slate-100 text-slate-400';
-  if (val >= 5) return 'bg-red-800 text-white';
-  if (val >= 4) return 'bg-red-600 text-white';
-  if (val >= 3) return 'bg-orange-500 text-white';
-  if (val >= 2) return 'bg-yellow-400 text-amber-900';
+  if (val >= 15) return 'bg-red-600 text-white';
+  if (val >= 10) return 'bg-orange-500 text-white';
+  if (val >= 5)  return 'bg-yellow-400 text-amber-900';
   return 'bg-emerald-600 text-white';
 };
 
@@ -1534,10 +1597,11 @@ const RiskSel = React.memo(({ value, onChange }) => (
   </select>
 ));
 
-const RiskBadge = React.memo(({ s, l, rankings }) => {
+const RiskBadge = React.memo(({ s, l, rankings, globalColors }) => {
   const sc = (parseInt(s)||0)*(parseInt(l)||0);
   const rnk = rankings || DEFAULT_RANKINGS;
-  const { bg, text } = GET_RISK_COLOR(sc, rnk);
+  const gc = globalColors || DEFAULT_GLOBAL_COLORS;
+  const { bg, text } = GET_RISK_COLOR(sc, rnk, gc);
   return (
     <div className="w-full h-full flex items-center justify-center font-black text-xs"
       style={{ background: bg, color: text, minHeight:'28px' }}>
@@ -1577,6 +1641,11 @@ const App = () => {
     recColumns: DEFAULT_REC_COLS,
     rankingColumns: DEFAULT_RANKING_COLS,
     rankings: DEFAULT_RANKINGS,
+    globalColors: DEFAULT_GLOBAL_COLORS,
+    severityLevels: DEFAULT_SEVERITY_LEVELS,
+    plantInfo: { name: '', location: '', owner: '', unit: '', description: '' },
+    nodeRiskInfo: [],
+    responsivityBy: [],
     riskMatrix: buildDefaultRiskMatrix(),
     checklistColumns: [
       { id: 'category', label: 'CATEGORY',          width: 180 },
@@ -1649,11 +1718,11 @@ const App = () => {
     updateServer({ nodes: studyData.nodes.map(n => n.id === activeNode.id ? { ...n, [field]: val } : n) });
   };
 
-  const handleMatrixCellUpdate = (likCode, conCode, val) => {
-    const key = `${likCode}_${conCode}`;
+  const handleMatrixCellUpdate = (freqVal, sevVal, newScore) => {
+    const key = `F${freqVal}_S${sevVal}`;
     const currentMatrix = studyData.riskMatrix || buildDefaultRiskMatrix();
     const channelMatrix = { ...(currentMatrix[riskMatrixChannel] || {}) };
-    channelMatrix[key] = parseInt(val) || 0;
+    channelMatrix[key] = parseInt(newScore) || 0;
     updateServer({ riskMatrix: { ...currentMatrix, [riskMatrixChannel]: channelMatrix } });
   };
 
@@ -1705,6 +1774,11 @@ const App = () => {
       recColumns: DEFAULT_REC_COLS,
       rankingColumns: DEFAULT_RANKING_COLS,
       rankings: DEFAULT_RANKINGS,
+      globalColors: DEFAULT_GLOBAL_COLORS,
+      severityLevels: DEFAULT_SEVERITY_LEVELS,
+      plantInfo: { name: '', location: '', owner: '', unit: '', description: '' },
+      nodeRiskInfo: [],
+      responsivityBy: [],
       riskMatrix: buildDefaultRiskMatrix(),
       checklistColumns: [
         { id: 'category', label: 'CATEGORY',        width: 180 },
@@ -2055,34 +2129,43 @@ const App = () => {
               <IndustrialRegistryView title="Checklist Registry" items={studyData.checklists || []} columns={studyData.checklistColumns || []} updateServer={updateServer} moduleKey="checklists" setShowColManager={setShowColManager} />
             )}
 
-            {/* ── RISK CRITERIA: RISK MATRIX ── */}
+            {/* ── RISK CRITERIA: RISK MATRIX HAZOP ── */}
             {activeTopTab === 'risk' && activeSideTab === 'matrix' && (() => {
-              const CONS_ROWS = ['VH','H','M','L','VL'];
-              const LIK_COLS  = ['VL','L','M','H','VH'];
               const matrix = (studyData.riskMatrix || buildDefaultRiskMatrix())[riskMatrixChannel] || {};
-              const rankings = studyData.rankings || DEFAULT_RANKINGS;
+              const globalColors = studyData.globalColors || DEFAULT_GLOBAL_COLORS;
+              const sevLevels = studyData.severityLevels || DEFAULT_SEVERITY_LEVELS;
+              // Freq rows top→bottom: F5 (highest) to F1 (lowest), matching image
+              const freqRows = [...FREQ_LABELS].reverse(); // F5 first
+              const sevCols = SEV_LABELS; // S0..S4
+
+              const getCellColor = (score) => {
+                if (score === 0) return { bg: '#f8fafc', text: '#cbd5e1' };
+                const gc = globalColors.find(g => score >= g.minScore && score <= g.maxScore);
+                if (gc) return { bg: gc.color, text: gc.textColor || '#fff' };
+                return { bg: '#f1f5f9', text: '#64748b' };
+              };
+
               return (
                 <div className="flex flex-col h-full bg-slate-50">
+                  {/* Header bar */}
                   <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
                     <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Risk Matrix
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Risk Matrix HAZOP
                     </h2>
                     <select className="bg-[#004a7c] text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer shadow-lg"
                       value={riskMatrixChannel} onChange={e => setRiskMatrixChannel(e.target.value)}>
                       {RISK_CHANNELS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
                     </select>
                   </div>
+
+                  {/* Toolbar */}
                   <div className="bg-[#f0f0f0] px-4 py-1.5 flex items-center border-b border-slate-300 shrink-0 shadow-sm z-10">
                     <div className="flex items-center gap-1">
-                      <ToolbarButton icon={<Copy size={18}/>} title="Copy" />
-                      <ToolbarButton icon={<Scissors size={18}/>} title="Cut" />
-                      <ToolbarButton icon={<Clipboard size={18}/>} title="Paste" />
-                      <div className="h-6 w-px bg-slate-300 mx-2"/>
                       <ToolbarButton icon={<Printer size={18}/>} onClick={() => handlePrintAction()} title="Print" />
                       <div className="h-6 w-px bg-slate-300 mx-2"/>
                       <ToolbarButton icon={<Download size={18} className="text-emerald-600"/>} onClick={exportFullStudyJSON} title="Export Full Study" />
                     </div>
-                    <div className="ml-4 flex items-center gap-3">
+                    <div className="ml-4 flex items-center gap-2">
                       {RISK_CHANNELS.map(ch => (
                         <button key={ch} onClick={() => setRiskMatrixChannel(ch)}
                           className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${riskMatrixChannel === ch ? 'bg-[#004a7c] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004a7c] hover:text-[#004a7c]'}`}>
@@ -2092,87 +2175,90 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-auto p-8 bg-slate-100/40">
-                    <div className="bg-white border border-slate-300 shadow-md rounded-sm overflow-hidden w-fit">
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    {/* Info banner */}
+                    <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-[10px] font-bold text-blue-700 flex items-center gap-2">
+                      <Info size={12} className="text-blue-500 shrink-0"/>
+                      Risk Score = Severity × Frequency. Click any cell to edit its score (0–25). Colors are driven by Global Color settings.
+                    </div>
+
+                    {/* The 5×5 Matrix — styled like the image */}
+                    <div className="bg-white border-2 border-slate-400 shadow-lg rounded overflow-hidden w-fit">
                       <table className="border-collapse text-[11px]">
                         <thead>
-                          <tr className="bg-[#004a7c] text-white">
-                            <th className="border border-slate-300 p-3 w-28 text-center font-black text-[9px] uppercase tracking-widest" rowSpan={2}>
-                              <div className="-rotate-90 whitespace-nowrap text-teal-300">Consequence</div>
+                          <tr>
+                            {/* Top-left corner: title */}
+                            <th colSpan={2} className="border border-slate-300 bg-[#f5e6d0] p-2 text-center font-black text-[13px] text-slate-700 uppercase tracking-widest" colSpan={2}>
+                              RISK MATRIX
                             </th>
-                            <th colSpan={5} className="border border-slate-300 p-2 text-center font-black text-[9px] text-teal-300 uppercase tracking-[0.3em]">Likelihood →</th>
-                            <th className="border border-slate-300 p-2 bg-slate-700 text-[8px] font-black uppercase tracking-widest text-slate-200 w-40 text-center">Risk Ranking</th>
-                          </tr>
-                          <tr className="bg-[#004a7c] text-white">
-                            {LIK_COLS.map(l => (
-                              <th key={l} className="border border-slate-300 p-3 w-24 text-center font-black text-xs">{l}</th>
+                            {sevCols.map(s => (
+                              <th key={s.code} className="border border-slate-400 bg-[#f5e6d0] p-2 text-center font-black text-[11px] text-slate-700 w-28">
+                                <div className="font-black">{s.label}</div>
+                                <div className="text-[9px] text-slate-500 font-bold">({s.code})</div>
+                              </th>
                             ))}
-                            <td className="border border-slate-300 bg-slate-100 p-2 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Code / Color / Label</td>
                           </tr>
                         </thead>
                         <tbody>
-                          {CONS_ROWS.map((cons, rowIdx) => {
-                            const ranking = rankings[rowIdx] || {};
-                            const rColor = GET_RISK_COLOR(parseInt(ranking.code) || 0, rankings);
+                          {freqRows.map((freq, fi) => {
                             return (
-                              <tr key={cons} className="h-20">
-                                <td className="border border-slate-300 bg-[#004a7c] text-white text-center font-black text-xs p-2 w-28">{cons}</td>
-                                {LIK_COLS.map(lik => {
-                                  const val = matrix[`${lik}_${cons}`] || 0;
-                                  const color = GET_RISK_COLOR(val, rankings);
+                              <tr key={freq.code}>
+                                {/* Frequency label cell */}
+                                {fi === 0 && (
+                                  <td rowSpan={freqRows.length} className="border border-slate-400 bg-[#f5e6d0] text-center align-middle w-10">
+                                    <div className="writing-mode-vertical font-black text-[11px] text-slate-600 uppercase tracking-widest"
+                                      style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap', padding: '8px 4px' }}>
+                                      F R E Q U E N C Y
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="border border-slate-400 bg-[#f5e6d0] p-2 text-left font-bold text-[10px] text-slate-700 max-w-[180px] align-middle">
+                                  <div className="font-black text-[10px]">{freq.label}</div>
+                                </td>
+                                {sevCols.map(sev => {
+                                  const key = `F${freq.value}_S${sev.value}`;
+                                  const score = matrix[key] !== undefined ? matrix[key] : (freq.value * sev.value);
+                                  const { bg, text } = getCellColor(score);
                                   return (
-                                    <td key={lik} className="border border-slate-300 p-0 relative group" style={{ backgroundColor: color.bg }}>
-                                      <select
-                                        className="w-full h-full min-h-[80px] bg-transparent text-center font-black text-lg cursor-pointer outline-none appearance-none px-2"
-                                        style={{ color: color.text }}
-                                        value={val}
-                                        onChange={e => handleMatrixCellUpdate(lik, cons, e.target.value)}>
-                                        <option value="0">-</option>
-                                        {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}</option>)}
-                                      </select>
-                                      <ChevronDown size={10} className="absolute bottom-1 right-1 opacity-30 group-hover:opacity-80" style={{ color: color.text }} />
+                                    <td key={sev.code} className="border border-slate-400 p-0 text-center align-middle w-28 h-16 relative group"
+                                      style={{ backgroundColor: bg }}>
+                                      <input
+                                        type="number" min="0" max="25"
+                                        className="w-full h-full text-center font-black text-xl bg-transparent outline-none cursor-pointer appearance-none"
+                                        style={{ color: text, minHeight: '60px', padding: '4px' }}
+                                        value={score}
+                                        onChange={e => handleMatrixCellUpdate(freq.value, sev.value, e.target.value)}
+                                      />
                                     </td>
                                   );
                                 })}
-                                <td className="border border-slate-300 p-2 bg-slate-50 align-middle">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-sm shrink-0" style={{ backgroundColor: rColor.bg, color: rColor.text }}>
-                                      {ranking.code || '-'}
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-black text-slate-700 uppercase">{ranking.description?.split('—')[0]?.trim() || ''}</p>
-                                      <p className="text-[8px] text-slate-400 font-bold">{ranking.description?.split('—')[1]?.trim() || ''}</p>
-                                    </div>
-                                  </div>
-                                </td>
                               </tr>
                             );
                           })}
-                          <tr className="bg-slate-100 border-t-2 border-slate-400">
-                            <td className="border border-slate-300 p-2 bg-[#004a7c] text-center text-[9px] font-black text-teal-300 uppercase tracking-widest">↓ Consequence</td>
-                            {LIK_COLS.map(l => (
-                              <td key={l} className="border border-slate-300 p-2 text-center text-[9px] font-black bg-[#004a7c] text-white">{l}</td>
-                            ))}
-                            <td className="border border-slate-300 bg-slate-200 p-2 text-[8px] text-slate-500 font-black text-center uppercase tracking-widest">Likelihood →</td>
+                          {/* Bottom label row */}
+                          <tr>
+                            <td colSpan={2} className="border border-slate-400 bg-[#f5e6d0] p-2 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Impact on ↓</td>
+                            <td colSpan={5} className="border border-slate-400 bg-[#f5e6d0] p-2 text-center text-[11px] font-black text-slate-700 uppercase tracking-widest">SEVERITY</td>
                           </tr>
                         </tbody>
                       </table>
+                    </div>
 
-                      <div className="p-4 bg-slate-50 border-t border-slate-200">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Risk Level Reference</p>
-                        <div className="flex items-center gap-4 flex-wrap">
-                          {rankings.slice().reverse().map(r => {
-                            const c = GET_RISK_COLOR(parseInt(r.code), rankings);
-                            return (
-                              <div key={r.id} className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded font-black text-xs flex items-center justify-center shadow-sm" style={{ backgroundColor: c.bg, color: c.text }}>{r.code}</div>
-                                <span className="text-[9px] font-bold text-slate-600">{r.description?.split('—')[0]?.trim()}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <p className="text-[8px] text-slate-400 font-bold mt-2">Risk = Severity (S) × Probability (P). Select a value 1–5 in each cell to set the risk ranking for that combination.</p>
+                    {/* Color Legend */}
+                    <div className="mt-6 bg-white border border-slate-300 shadow rounded-xl p-5 w-fit">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Risk Level Color Key (from Global Color settings)</p>
+                      <div className="flex items-center gap-4 flex-wrap">
+                        {globalColors.map(gc => (
+                          <div key={gc.id} className="flex items-center gap-2">
+                            <div className="w-10 h-8 rounded font-black text-xs flex items-center justify-center shadow-sm border border-slate-200"
+                              style={{ backgroundColor: gc.color, color: gc.textColor || '#fff' }}>
+                              {gc.range}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600">{gc.label}</span>
+                          </div>
+                        ))}
                       </div>
+                      <p className="text-[9px] text-slate-400 font-bold mt-3">Risk Score = Severity (S) × Frequency (F). Adjust colors in the "Global Color" sub-section.</p>
                     </div>
                   </div>
                 </div>
@@ -2309,17 +2395,305 @@ const App = () => {
               </div>
             )}
 
-            {/* ── RISK CRITERIA: RANKINGS ── */}
-            {activeTopTab === 'risk' && activeSideTab === 'rankings' && (
-              <IndustrialRegistryView
-                title="Risk Rankings"
-                items={studyData.rankings || DEFAULT_RANKINGS}
-                columns={studyData.rankingColumns || DEFAULT_RANKING_COLS}
-                updateServer={updateServer}
-                moduleKey="rankings"
-                setShowColManager={setShowColManager}
-              />
-            )}
+            {/* ── RISK CRITERIA: RANKINGS/RISK COLOR ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'rankings' && (() => {
+              const rankings = studyData.rankings || DEFAULT_RANKINGS;
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Risk Color (Legacy)
+                    </h2>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    <div className="bg-white border border-slate-300 shadow-md rounded-lg overflow-hidden">
+                      <div className="p-4 bg-slate-100 border-b border-slate-300 flex items-center gap-2">
+                        <Info size={14} className="text-blue-500"/>
+                        <p className="text-[10px] font-bold text-slate-600">Legacy risk color system. New projects should use "Global Color" instead.</p>
+                      </div>
+                      <table className="w-full border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-[#004a7c] text-white">
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Code</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Description</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Color</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Priority</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rankings.map((rank, idx) => (
+                            <tr key={rank.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                              <td className="border border-slate-300 p-3 font-black text-xs w-12" style={{ backgroundColor: rank.color, color: '#fff' }}>
+                                {rank.code}
+                              </td>
+                              <td className="border border-slate-300 p-3 text-[10px] font-bold">{rank.description}</td>
+                              <td className="border border-slate-300 p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded border border-slate-300 shadow-sm" style={{ backgroundColor: rank.color }}/>
+                                  <span className="text-[9px] font-mono text-slate-500">{rank.color}</span>
+                                </div>
+                              </td>
+                              <td className="border border-slate-300 p-3 font-bold text-[10px]">{rank.priority}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: SEVERITY ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'severity' && (() => {
+              const severityLevels = studyData.severityLevels || DEFAULT_SEVERITY_LEVELS;
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Severity Levels
+                    </h2>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    <div className="bg-white border border-slate-300 shadow-md rounded-lg overflow-hidden">
+                      <div className="p-4 bg-slate-100 border-b border-slate-300 flex items-center gap-2">
+                        <Info size={14} className="text-blue-500"/>
+                        <p className="text-[10px] font-bold text-slate-600">Customize severity level definitions and their associated colors.</p>
+                      </div>
+                      <table className="w-full border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-[#004a7c] text-white">
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Code</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Label</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Value</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Color</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {severityLevels.map((sev, idx) => (
+                            <tr key={sev.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                              <td className="border border-slate-300 p-3 font-bold text-[10px]">{sev.code}</td>
+                              <td className="border border-slate-300 p-3 text-[10px] font-bold">{sev.label}</td>
+                              <td className="border border-slate-300 p-3 text-center font-bold text-[10px]">{sev.value}</td>
+                              <td className="border border-slate-300 p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded border border-slate-300 shadow-sm" style={{ backgroundColor: sev.color }}/>
+                                  <span className="text-[9px] font-mono text-slate-500">{sev.color}</span>
+                                </div>
+                              </td>
+                              <td className="border border-slate-300 p-3 text-[10px] font-bold">{sev.description}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: GLOBAL COLOR ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'globalcolor' && (() => {
+              const globalColors = studyData.globalColors || DEFAULT_GLOBAL_COLORS;
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Global Color Scale
+                    </h2>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    <div className="bg-white border border-slate-300 shadow-md rounded-lg overflow-hidden">
+                      <div className="p-4 bg-slate-100 border-b border-slate-300 flex items-center gap-2">
+                        <Info size={14} className="text-blue-500"/>
+                        <p className="text-[10px] font-bold text-slate-600">Map risk score ranges (1–25) to colors. Used in Risk Matrix and all worksheets.</p>
+                      </div>
+                      <table className="w-full border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-[#004a7c] text-white">
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Range</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Label</th>
+                            <th className="border border-slate-300 p-3 text-center font-black uppercase tracking-widest">Min</th>
+                            <th className="border border-slate-300 p-3 text-center font-black uppercase tracking-widest">Max</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">BG Color</th>
+                            <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Text Color</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {globalColors.map((gc, idx) => (
+                            <tr key={gc.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                              <td className="border border-slate-300 p-3 font-bold text-[10px]">{gc.range}</td>
+                              <td className="border border-slate-300 p-3 text-[10px] font-bold">{gc.label}</td>
+                              <td className="border border-slate-300 p-3 text-center font-bold text-[10px]">{gc.minScore}</td>
+                              <td className="border border-slate-300 p-3 text-center font-bold text-[10px]">{gc.maxScore}</td>
+                              <td className="border border-slate-300 p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded border border-slate-300 shadow-sm" style={{ backgroundColor: gc.color }}/>
+                                  <span className="text-[9px] font-mono text-slate-500">{gc.color}</span>
+                                </div>
+                              </td>
+                              <td className="border border-slate-300 p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded border border-slate-300 shadow-sm" style={{ backgroundColor: gc.textColor || '#fff', color: '#000' }}/>
+                                  <span className="text-[9px] font-mono text-slate-500">{gc.textColor || '#fff'}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: PLANT ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'plant' && (() => {
+              const plantInfo = studyData.plantInfo || {};
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Plant Information
+                    </h2>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    <div className="max-w-2xl mx-auto bg-white border border-slate-300 shadow-md rounded-lg p-6 space-y-4">
+                      <div>
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block mb-2">Plant Name</label>
+                        <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-[11px] font-bold"
+                          defaultValue={plantInfo.name || ''} placeholder="e.g., Refinery XYZ"/>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block mb-2">Location</label>
+                        <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-[11px] font-bold"
+                          defaultValue={plantInfo.location || ''} placeholder="e.g., Mumbai, India"/>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block mb-2">Owner/Operator</label>
+                        <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-[11px] font-bold"
+                          defaultValue={plantInfo.owner || ''} placeholder="e.g., ABC Energy Ltd."/>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block mb-2">Unit/Process</label>
+                        <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-[11px] font-bold"
+                          defaultValue={plantInfo.unit || ''} placeholder="e.g., Distillation Unit"/>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block mb-2">Description</label>
+                        <textarea className="w-full px-3 py-2 border border-slate-300 rounded-lg text-[11px] font-bold" rows="4"
+                          defaultValue={plantInfo.description || ''} placeholder="Brief description of the plant..."/>
+                      </div>
+                      <button className="w-full px-4 py-2 bg-[#004a7c] text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#003a5c]">
+                        Save Plant Info
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: NODE RISK INFO ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'node_risk' && (() => {
+              const nodeRiskInfo = studyData.nodeRiskInfo || [];
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Node Risk Information
+                    </h2>
+                    <button className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-2 shadow-md">
+                      <Plus size={14}/>Add Node
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    {nodeRiskInfo.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-center">
+                        <div className="p-8 bg-white border border-dashed border-slate-300 rounded-lg max-w-xs">
+                          <Map size={40} className="mx-auto text-slate-300 mb-4"/>
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">No nodes added</p>
+                          <p className="text-[10px] text-slate-400 mt-2">Define node-level risk profiles here.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {nodeRiskInfo.map((node, idx) => (
+                          <div key={idx} className="bg-white border border-slate-300 rounded-lg p-4 shadow-sm">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1">Node Name</label>
+                                <input type="text" className="w-full px-2 py-1 border border-slate-300 rounded text-[10px] font-bold"
+                                  defaultValue={node.name || ''}/>
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1">Risk Level</label>
+                                <select className="w-full px-2 py-1 border border-slate-300 rounded text-[10px] font-bold">
+                                  <option>Low</option>
+                                  <option>Medium</option>
+                                  <option>High</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RISK CRITERIA: RESPONSIVITY BY ── */}
+            {activeTopTab === 'risk' && activeSideTab === 'responsivity' && (() => {
+              const responsivityBy = studyData.responsivityBy || [];
+              return (
+                <div className="flex flex-col h-full bg-slate-50">
+                  <div className="bg-slate-200 px-6 py-3 border-b border-slate-400 flex items-center justify-between shadow-sm shrink-0">
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-[#004a7c] rounded-full" />Responsivity By
+                    </h2>
+                    <button className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-2 shadow-md">
+                      <Plus size={14}/>Add Responsibility
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 bg-slate-100/40">
+                    <div className="bg-white border border-slate-300 shadow-md rounded-lg overflow-hidden">
+                      <div className="p-4 bg-slate-100 border-b border-slate-300 flex items-center gap-2">
+                        <Info size={14} className="text-blue-500"/>
+                        <p className="text-[10px] font-bold text-slate-600">Define responsibility/ownership for risk responses and mitigation actions.</p>
+                      </div>
+                      {responsivityBy.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <UserCheck size={40} className="mx-auto text-slate-300 mb-4"/>
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">No responsibilities defined</p>
+                        </div>
+                      ) : (
+                        <table className="w-full border-collapse text-[11px]">
+                          <thead>
+                            <tr className="bg-[#004a7c] text-white">
+                              <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Department/Team</th>
+                              <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Contact</th>
+                              <th className="border border-slate-300 p-3 text-left font-black uppercase tracking-widest">Risk Scope</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {responsivityBy.map((resp, idx) => (
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                <td className="border border-slate-300 p-3 text-[10px] font-bold">{resp.department || '—'}</td>
+                                <td className="border border-slate-300 p-3 text-[10px] font-bold">{resp.contact || '—'}</td>
+                                <td className="border border-slate-300 p-3 text-[10px] font-bold">{resp.scope || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── PHA WORKSHEET ── */}
             {activeTopTab === 'pha' && activeSideTab === 'sheet' && (() => {
@@ -2491,7 +2865,8 @@ const App = () => {
 
                         return (
                           <tr key={row.id} className="group/leaf transition-colors hover:brightness-[0.97]"
-                            style={{ borderTop: isDevFirst && di>0 ? '3px solid #2563eb' : isCauseFirst && ci>0 ? '2px solid #d97706' : isConsFirst && congi>0 ? '1px dashed #10b981' : undefined }}>
+                            style={{ borderTop: isDevFirst && di>0 ? '3px solid #2563eb' : isCauseFirst && ci>0 ? '2px solid #d97706' : isConsFirst && congi>0 ? '1px dashed #10b981' : undefined }}
+                            onContextMenu={e => { e.preventDefault(); setContextMenu({ visible: true, x: e.pageX, y: e.pageY, rowId: row.id, phaRowType: si === 0 && congi === 0 && ci === 0 ? 'deviation' : si === 0 && congi === 0 ? 'cause' : si === 0 ? 'consequence' : 'safeguard' }); }}>
 
                             {/* SR — spans deviation */}
                             {isDevFirst && (
@@ -2914,7 +3289,7 @@ const App = () => {
                     </table>
                   </div>
 
-                  {/* PHA Worksheet Table */}
+                  {/* PHA Table */}
                   <div style={{minWidth:TOTAL_W+'px', overflowX:'auto'}}>
                     <table className="border-collapse pha-print-table" style={{width:TOTAL_W+'px', tableLayout:'fixed'}}>
                       <colgroup>
