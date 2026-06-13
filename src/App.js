@@ -216,11 +216,11 @@ const RISK_CHANNELS = ['Safety', 'Environment', 'Assets', 'Community', 'Reputati
 // Frequency codes F1–F5 mapped to numeric values 1–5
 // Risk = Severity × Frequency (matches the image: 5×5 matrix with values 1–25)
 const SEV_LABELS = [
-  { code: 'S0', label: 'Negligible', value: 0 },
-  { code: 'S1', label: 'Low',        value: 1 },
-  { code: 'S2', label: 'Medium',     value: 2 },
-  { code: 'S3', label: 'High',       value: 3 },
-  { code: 'S4', label: 'Catastrophic', value: 4 },
+  { code: 'S0', label: 'Negligible', value: 1 },
+  { code: 'S1', label: 'Low',        value: 2 },
+  { code: 'S2', label: 'Medium',     value: 3 },
+  { code: 'S3', label: 'High',       value: 4 },
+  { code: 'S4', label: 'Catastrophic', value: 5 },
 ];
 const FREQ_LABELS = [
   { code: 'F1', label: 'LOW (1 in 100–1000 yrs)',         value: 1 },
