@@ -8,7 +8,7 @@ import {
   Columns, AlertTriangle, ChevronUp, ChevronDown, CopyPlus,
   FilePlus, FolderSync, LogOut, ArrowUp, ArrowDown,
   Settings, Check, FileUp, ClipboardCheck, Zap, Grid3X3,
-  Boxes, Calendar, CheckSquare, Bell, BarChart2, UserCheck, Info
+  Boxes, Calendar, CheckSquare, Bell, BarChart2, UserCheck, Info, Plus
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────
