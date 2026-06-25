@@ -1827,7 +1827,7 @@ const App = () => {
           <div className="flex items-center gap-6 h-full">
             <div className="flex items-center gap-2 pr-6 border-r border-slate-100">
               <div className="w-5 h-5 bg-[#0d1111] rounded flex items-center justify-center text-[10px] font-black text-white shadow-sm">PS</div>
-              <span className="text-[11px] font-black uppercase text-[#0d1111]">Perpetual PHA</span>
+              <span className="text-[11px] font-black uppercase text-[#0d1111]">PS-Magnashield</span>
             </div>
             <div className="relative">
               <button onClick={() => setFileMenuOpen(!fileMenuOpen)} className="text-[11px] font-bold px-3 text-slate-500 hover:text-[#00B2B2] cursor-pointer transition-colors uppercase tracking-widest">File</button>
@@ -1918,9 +1918,9 @@ const App = () => {
         <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-2 pr-6 border-r border-slate-100">
             <div className="w-5 h-5 bg-[#0d1111] rounded flex items-center justify-center text-[10px] font-black text-white shadow-sm">PS</div>
-            <span className="text-[11px] font-black uppercase text-[#0d1111]">Perpetual PHA</span>
+            <span className="text-[11px] font-black uppercase text-[#0d1111]">PS-Magnashield</span>
           </div>
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">PHA Workstation</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Main Workstation</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3 bg-slate-50 px-3 py-1 rounded-full border border-slate-100 shadow-sm">
